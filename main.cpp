@@ -8,14 +8,16 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    int image_width = 1080;
-    int image_height = 1080;
-    int anti_alias = 4;
+    int scale = 1;
+    int anti_alias = 1;
+    int image_width = 108 * scale;
+    int image_height = 108 * scale;
 
     int width = image_width * anti_alias;
     int height = image_height * anti_alias;
     color *pixels;
     pixels = new color [width*height];
+    #pragma omp parallel for
     for (int j = 0; j < height; ++j) {
         for (int i = 0; i < width; ++i) {
             real x = (2*i - width) / (real) height * 1.2 - 0.7;
@@ -23,7 +25,7 @@ int main(int argc, char *argv[])
             int idx = i + j*width;
 
             quaternion q = {x, y, 0, 0};
-            auto res = mandelbrot(q, q, Q_ONE, 2, 256);
+            auto res = mandelbrot(q, q, Q_ONE, 2, 128);
             real r = res.first;
             quaternion grad = res.second;
             if (r > 0) {
@@ -36,13 +38,14 @@ int main(int argc, char *argv[])
     }
     color *aa_pixels;
     aa_pixels = new color [image_width*image_height];
+    #pragma omp parallel for
     for (int j = 0; j < image_height; ++j) {
         for (int i = 0; i < image_width; ++i) {
             color pixel = Q_ZERO;
             for (int sub_j = 0; sub_j < anti_alias; ++sub_j) {
                 for (int sub_i = 0; sub_i < anti_alias; ++sub_i) {
                     int idx = i*anti_alias + sub_i + (j*anti_alias + sub_j) * width;
-                    pixel = pixel + pixels[idx];
+                    pixel = pixel + clip_color(pixels[idx]);
                 }
             }
             aa_pixels[i + j*image_width] = pixel / (anti_alias*anti_alias);

@@ -8,4 +8,6 @@
 
 std::pair<real, quaternion> mandelbrot(quaternion q, const quaternion& c, const quaternion& dc, const int& exponent, const int& num_iter);
 
+real classic_mandelbrot(quaternion q, const quaternion& c, const int& num_iter);
+
 #endif

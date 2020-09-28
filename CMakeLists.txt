@@ -19,6 +19,6 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra --std c++17")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra --std c++17 -fopenmp")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -pg")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
