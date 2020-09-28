@@ -27,6 +27,8 @@ std::ostream& operator<<(std::ostream& os, const quaternion& q);
 
 real norm(const quaternion& q);
 
+real norm2(const quaternion& q);
+
 quaternion conjugate(const quaternion& q);
 
 quaternion inverse(const quaternion& q);

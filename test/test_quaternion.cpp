@@ -29,6 +29,7 @@ void test_multiplication() {
 void test_hurwitz() {
     assert(pow((quaternion){0.5, 0.5, 0.5, 0.5}, 6) == 1);
     assert(pow((quaternion){-0.5, 0.5, 0.5, 0.5}, 3) == 1);
+    assert(pow(Q_I, -4) == 1);
 }
 
 void test_eulers_identity() {

@@ -12,6 +12,9 @@ ADD_SUBDIRECTORY(src)
 ENABLE_TESTING()
 ADD_SUBDIRECTORY(test)
 
+ADD_EXECUTABLE(render main.cpp)
+TARGET_LINK_LIBRARIES(render density-tracer)
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()

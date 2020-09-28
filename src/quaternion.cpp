@@ -15,6 +15,10 @@ real norm(const quaternion& q) {
     return sqrt(q.w*q.w + q.x*q.x + q.y*q.y + q.z*q.z);
 }
 
+real norm2(const quaternion& q) {
+    return q.w*q.w + q.x*q.x + q.y*q.y + q.z*q.z;
+}
+
 quaternion conjugate(const quaternion& q) {
     return (quaternion){q.w, -q.x, -q.y, -q.z};
 }
@@ -99,9 +103,9 @@ quaternion imag(const quaternion& q) {
 inline quaternion square(const quaternion& q) {
     return (quaternion){
         q.w*q.w - q.x*q.x - q.y*q.y - q.z*q.z,
-        q.w*q.x + q.x*q.w,
-        q.w*q.y + q.y*q.w,
-        q.w*q.z + q.z*q.w
+        2*q.w*q.x,
+        2*q.w*q.y,
+        2*q.w*q.z
     };
 }
 
@@ -166,11 +170,17 @@ color clip_color(const color& a) {
     if (pixel.w < 0) {
         pixel.w = 0;
     }
+    if (std::isnan(pixel.w)) {
+        pixel.w = 0.5;
+    }
     if (pixel.x > 1) {
         pixel.x = 1;
     }
     if (pixel.x < 0) {
         pixel.x = 0;
+    }
+    if (std::isnan(pixel.x)) {
+        pixel.x = 0.5;
     }
     if (pixel.y > 1) {
         pixel.y = 1;
@@ -178,11 +188,17 @@ color clip_color(const color& a) {
     if (pixel.y < 0) {
         pixel.y = 0;
     }
+    if (std::isnan(pixel.y)) {
+        pixel.y = 0.5;
+    }
     if (pixel.z > 1) {
         pixel.z = 1;
     }
     if (pixel.z < 0) {
         pixel.z = 0;
+    }
+    if (std::isnan(pixel.z)) {
+        pixel.z = 0.5;
     }
     return pixel;
 }
