@@ -4,6 +4,7 @@ ADD_LIBRARY(
   quaternion.cpp
   julia.cpp
   ppm.cpp
+  image.cpp
 )
 INSTALL(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../include/density-tracer
