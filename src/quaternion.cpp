@@ -119,7 +119,7 @@ inline quaternion aligned_mul(const quaternion& a, const quaternion& b) {
     };
 }
 
-quaternion pow(const quaternion& a, int b) {
+quaternion pow(const quaternion& a, const int& b) {
     quaternion res = Q_ONE;
     quaternion m = a;
     int exponent = abs(b);
@@ -144,16 +144,24 @@ quaternion project(const quaternion& a, const quaternion& b) {
     return dot(a, b) * a;
 }
 
-quaternion cross_align(const quaternion& a, const quaternion& b) {
-    // Assumes |a| = 1
-    quaternion c = b;
-    real angle = dot(a, b);
-    if (angle > EPSILON) {
-        c = b / angle - a;
-    } else if (angle < -EPSILON) {
-        c = a - b / angle;
-    }
-    return c / norm(c);
+quaternion cross(const quaternion& a, const quaternion& b) {
+    return (quaternion) {
+        0,
+        a.y*b.z - a.z*b.y,
+        a.z*b.x - a.x*b.z,
+        a.x*b.y - a.y*b.x
+    };
+}
+
+quaternion rotor(quaternion axis, const real& angle) {
+    axis = imag(axis);
+    axis = axis / norm(axis);
+    return cos(0.5*angle) + axis * sin(0.5*angle);
+}
+
+quaternion rotate(const quaternion& q, const quaternion& axis, const real& angle) {
+    quaternion r = rotor(axis, angle);
+    return r * q * conjugate(r);
 }
 
 quaternion exp(const quaternion& q) {

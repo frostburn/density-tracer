@@ -38,9 +38,19 @@ void test_eulers_identity() {
     assert(isclose(Q_ONE + exp(M_PI * Q_K), Q_ZERO));
 }
 
+void test_cross() {
+    assert(cross(Q_I, Q_J) == Q_K);
+}
+
+void test_rotate() {
+    assert(isclose(rotate(2*Q_I, 3*Q_K, 0.5*M_PI), 2*Q_J));
+}
+
 int main() {
     test_sir_william_rowan_hamilton_on_16th_of_october_1843();
     test_multiplication();
     test_hurwitz();
     test_eulers_identity();
+    test_cross();
+    test_rotate();
 }

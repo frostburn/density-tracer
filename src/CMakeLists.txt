@@ -5,6 +5,7 @@ ADD_LIBRARY(
   julia.cpp
   ppm.cpp
   image.cpp
+  shapes.cpp
 )
 INSTALL(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../include/density-tracer
