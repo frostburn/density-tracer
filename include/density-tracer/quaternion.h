@@ -60,10 +60,13 @@ bool operator ==(const quaternion& a, const real& b);
 bool operator ==(const real& a, const quaternion& b);
 
 bool isclose(const quaternion& a, const quaternion& b);
+bool isclose(const quaternion& a, const quaternion& b, const real& tolerance);
 
 quaternion infinity ();
 
 quaternion imag(const quaternion& q);
+
+quaternion normalize(const quaternion& q);
 
 quaternion pow(const quaternion& a, const int& b);
 

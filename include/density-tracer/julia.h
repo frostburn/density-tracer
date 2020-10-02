@@ -10,4 +10,6 @@ std::pair<real, quaternion> mandelbrot(quaternion q, const quaternion& c, const 
 
 real classic_mandelbrot(quaternion q, const quaternion& c, const int& num_iter);
 
+real abc_julia(quaternion q, const quaternion& a, const quaternion& b, const quaternion& c, const int& num_iter);
+
 #endif

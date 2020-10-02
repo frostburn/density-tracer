@@ -15,10 +15,16 @@ ADD_SUBDIRECTORY(test)
 ADD_EXECUTABLE(render main.cpp)
 TARGET_LINK_LIBRARIES(render density-tracer)
 
+ADD_EXECUTABLE(merkaba-field instances/merkaba_field.cpp)
+TARGET_LINK_LIBRARIES(merkaba-field density-tracer)
+
+ADD_EXECUTABLE(julia-with-ring instances/julia_with_ring.cpp)
+TARGET_LINK_LIBRARIES(julia-with-ring density-tracer)
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra --std c++17 -fopenmp")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra --std=c++1z -fopenmp")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -pg")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")

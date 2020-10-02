@@ -9,4 +9,8 @@ real merkaba(const quaternion& loc);
 
 real tesseract(const quaternion& loc);
 
+real sphere(const quaternion& loc);
+
+real torus(const quaternion& loc, const real& major_radius);
+
 #endif

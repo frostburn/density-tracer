@@ -52,3 +52,29 @@ real classic_mandelbrot(quaternion q, const quaternion& c, const int& num_iter) 
     }
     return log(log(r)) * 1.4426950408889634 - 1.0 + (num_iter - 1 - i);
 }
+
+
+real abc_julia(quaternion q, const quaternion& a, const quaternion& b, const quaternion& c, const int& num_iter) {
+    const quaternion d = a + b;
+    const quaternion e = a - b;
+    int i = 0;
+    real r = 0;
+    for (; i < num_iter; ++i) {
+        r = norm2(q);
+        if (r > BAILOUT) {
+            break;
+        }
+        // Optimized version of: q = q*q + q*a + b*q + c
+        const quaternion f = q + d;
+        q = (quaternion) {
+            q.w*f.w - q.x*f.x - q.y*f.y - q.z*f.z + c.w,
+            q.w*f.x + q.x*f.w + q.y*e.z - q.z*e.y + c.x,
+            q.w*f.y + q.y*f.w - q.x*e.z + q.z*e.x + c.y,
+            q.w*f.z + q.z*f.w + q.x*e.y - q.y*e.x + c.z,
+        };
+    }
+    if (r < M_E*M_E) {
+        return -sqrt(r);
+    }
+    return log(log(r)) * 1.4426950408889634 - 2.0 + num_iter - i;
+}

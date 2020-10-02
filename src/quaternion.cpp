@@ -91,6 +91,10 @@ bool isclose(const quaternion& a, const quaternion& b) {
     return fabs(a.w - b.w) < EPSILON && fabs(a.x - b.x) < EPSILON && fabs(a.y - b.y) < EPSILON && fabs(a.z - b.z) < EPSILON;
 }
 
+bool isclose(const quaternion& a, const quaternion& b, const real& tolerance) {
+    return fabs(a.w - b.w) < tolerance && fabs(a.x - b.x) < tolerance && fabs(a.y - b.y) < tolerance && fabs(a.z - b.z) < tolerance;
+}
+
 quaternion infinity () {
     real inf = std::numeric_limits<real>::infinity();
     return (quaternion){inf, inf, inf, inf};
@@ -98,6 +102,10 @@ quaternion infinity () {
 
 quaternion imag(const quaternion& q) {
     return (quaternion){0, q.x, q.y, q.z};
+}
+
+quaternion normalize(const quaternion& q) {
+    return q / norm(q);
 }
 
 inline quaternion square(const quaternion& q) {

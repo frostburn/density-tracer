@@ -17,3 +17,12 @@ real merkaba(const quaternion& loc) {
 real tesseract(const quaternion& loc) {
     return std::max(std::max(std::max(fabs(loc.w), fabs(loc.x)), fabs(loc.y)), fabs(loc.z));
 }
+
+real sphere(const quaternion& loc) {
+    return norm(loc);
+}
+
+real torus(const quaternion& loc, const real& major_radius) {
+    real u = sqrt(loc.x*loc.x + loc.y*loc.y) - major_radius;
+    return sqrt(u*u + loc.z*loc.z);
+}
