@@ -32,20 +32,26 @@ void test_ball() {
     assert(d3 == std::numeric_limits<real>::infinity());
 }
 
-void test_reflection() {
-    std::vector<std::shared_ptr<Traceable>> objects;
+void test_tetrahedron() {
+    quaternion origin = {0, 2, 2, 2};
+    quaternion direction = normalize(-origin);
+    Tetrahedron tetra;
+    auto [distance, normal] = tetra.trace(origin, direction);
+    assert(distance < 3);
+    assert(isclose(normal, normalize(origin)));
 
-    std::shared_ptr<Plane> plane = std::make_shared<Plane>();
-    plane->location = {0, 0, -1, 0};
-    objects.push_back(plane);
+    direction = {0, 1, 0, 0};
+    auto [d, n] = tetra.trace(origin, direction);
+    assert(d == std::numeric_limits<real>::infinity());
 
-    const RayPath path({0, -1, 0, 0}, normalize({0, 1, -1, 0}), objects, 5);
-    assert((path.get_location(0) == (quaternion){0, -1, 0, 0}));
-    assert(isclose(path.get_location(2*sqrt(2)), {0, 1, 0, 0}, EPSILON));
+    origin = {0, 3, 3, 3};
+    direction = normalize(-origin);
+    auto [d2, n2] = tetra.trace(origin, direction);
+    assert(d2 < 5);
+    assert(isclose(n2, normalize(origin)));
 }
-
 
 int main() {
     test_ball();
-    test_reflection();
+    test_tetrahedron();
 }
