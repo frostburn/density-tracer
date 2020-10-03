@@ -36,24 +36,13 @@ color frequency_to_rgb(const real& frequency) {
 }
 
 std::pair<real, quaternion> Plane::trace(const quaternion& origin, const quaternion& direction) const {
-    if (origin.y > 0) {
-        if (direction.y < -EPSILON) {
-            return std::make_pair(-origin.y / direction.y, Q_J);
-        }
-        return std::make_pair(std::numeric_limits<real>::infinity(), Q_ZERO);
-    }
-    if (direction.y > EPSILON) {
-        return std::make_pair(-origin.y / direction.y, -Q_J);
+    if ((origin.y < 0 && direction.y > EPSILON) || (origin.y > 0 && direction.y < -EPSILON)) {
+        return std::make_pair(-origin.y / direction.y, Q_J);
     }
     return std::make_pair(std::numeric_limits<real>::infinity(), Q_ZERO);
 }
 
 std::pair<real, quaternion> Tetrahedron::trace(const quaternion& origin, const quaternion& direction) const {
-    real s = ISQRT_3;
-    quaternion l = origin;
-    if (l.x + l.y + l.z < 1 && l.x - l.y -l.z < 1 && l.y - l.x - l.z < 1 && l.z - l.x - l.y < 1) {
-        s = -s;
-    }
     real o = origin.x + origin.y + origin.z;
     real d = direction.x + direction.y + direction.z;
     real t_a;
@@ -113,20 +102,20 @@ std::pair<real, quaternion> Tetrahedron::trace(const quaternion& origin, const q
     if (t_a > 0 && (t_a < t_b || t_b < 0)) {
         if (t_a < t_c || t_c < 0) {
             if (t_a < t_d || t_d < 0) {
-                return std::make_pair(t_a, (quaternion){0, s, s, s});
+                return std::make_pair(t_a, (quaternion){0, ISQRT_3, ISQRT_3, ISQRT_3});
             }
         }
     }
     if (t_b > 0 && (t_b < t_c || t_c < 0)) {
         if (t_b < t_d || t_d < 0) {
-            return std::make_pair(t_b, (quaternion){0, s, -s, -s});
+            return std::make_pair(t_b, (quaternion){0, ISQRT_3, -ISQRT_3, -ISQRT_3});
         }
     }
     if (t_c > 0 && (t_c < t_d || t_d < 0)) {
-        return std::make_pair(t_c, (quaternion){0, -s, s, -s});
+        return std::make_pair(t_c, (quaternion){0, -ISQRT_3, ISQRT_3, -ISQRT_3});
     }
     if (t_d > 0) {
-        return std::make_pair(t_d, (quaternion){0, -s, -s, s});
+        return std::make_pair(t_d, (quaternion){0, -ISQRT_3, -ISQRT_3, ISQRT_3});
     }
     return std::make_pair(std::numeric_limits<real>::infinity(), Q_ZERO);
 }
@@ -146,8 +135,9 @@ std::pair<real, quaternion> Ball::trace(const quaternion& origin, const quaterni
         distance = discriminant - od;
     }
     if (distance > 0) {
-        quaternion intersection = origin + distance * direction;
-        return std::make_pair(distance, intersection);
+        // On a unit ball the point of intersection is the same as the vector of outgoing normal
+        const quaternion normal = origin + distance * direction;
+        return std::make_pair(distance, normal);
     }
     return std::make_pair(std::numeric_limits<real>::infinity(), Q_ZERO);
 }
@@ -157,11 +147,12 @@ RayPath::RayPath(
     const std::vector<std::shared_ptr<Traceable>>& objects,
     const SkySphere& sky_sphere,
     const real& max_length, const int& max_depth,
-    const real& frequency) {
+    const real& frequency, const real& index) {
     this->start = origin;
     this->direction = direction;
     this->total_length = max_length;
     this->frequency = frequency;
+    this->index = index;
     this->length = std::numeric_limits<real>::infinity();
     if (max_depth > 0) {
         quaternion closest_normal;
@@ -181,24 +172,59 @@ RayPath::RayPath(
             closest_normal = inverse(closest_object->left_transform)*closest_normal*inverse(closest_object->right_transform);
             quaternion end = origin + direction * this->length;
             this->end_amplitude = closest_object->pigment->eval(end, direction, closest_normal, frequency);
-            this->end_alpha = closest_object->reflectivity->eval(end, direction, closest_normal, frequency);
-            if (this->end_alpha != 0) {
-                const quaternion reflected_direction = direction - 2 * dot(direction, closest_normal) * closest_normal;
-                this->child = new RayPath(end + reflected_direction * EPSILON, reflected_direction, objects, sky_sphere, max_length - this->length, max_depth - 1, frequency);
+            this->reflection_weight = closest_object->reflectivity->eval(end, direction, closest_normal, frequency);
+            this->refraction_weight = closest_object->transparency->eval(end, direction, closest_normal, frequency);
+            if (this->reflection_weight == 0) {
+                this->reflected_path = nullptr;
             } else {
-                this->child = nullptr;
+                const quaternion reflected_direction = direction - 2 * dot(direction, closest_normal) * closest_normal;
+                this->reflected_path = new RayPath(
+                    end + reflected_direction * EPSILON,
+                    reflected_direction,
+                    objects, sky_sphere,
+                    max_length - this->length, max_depth - 1,
+                    frequency, index);
+            }
+            if (this->refraction_weight == 0 || this->reflection_weight == 1) {
+                this->refracted_path = nullptr;
+            } else {
+                const real refractive_index = closest_object->ior->eval(end, direction, closest_normal, frequency);
+                // Adapted from:
+                // https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/reflection-refraction-fresnel
+                real cosi = dot(direction, closest_normal);
+                real etai = index;
+                real etat = refractive_index;
+                quaternion n = closest_normal;
+                if (cosi < 0) { cosi = -cosi; } else { std::swap(etai, etat); n= -n; }
+                const real eta = etai / etat;
+                const real k = 1 - eta*eta * (1 - cosi*cosi);
+                if (k > 0) {
+                    const quaternion refracted_direction = normalize(eta * direction + (eta * cosi - sqrt(k)) * n);
+                    this->refracted_path = new RayPath(
+                        end + refracted_direction * EPSILON,
+                        refracted_direction,
+                        objects, sky_sphere,
+                        max_length - this->length, max_depth - 1,
+                        frequency, refractive_index / index);
+                } else {
+                    this->refracted_path = nullptr;
+                }
             }
         } else {
             this->length = max_length;
             this->end_amplitude = sky_sphere.eval(direction, frequency);
-            this->end_alpha = 0;
-            this->child = nullptr;
+            this->reflection_weight = 0;
+            this->refraction_weight = 0;
+            this->reflected_path = nullptr;
+            this->refracted_path = nullptr;
         }
     } else {
         this->length = EPSILON;
         this->end_amplitude = 0;
-        this->end_alpha = 0;
-        this->child = nullptr;
+        this->reflection_weight = 0;
+        this->refraction_weight = 0;
+        this->reflected_path = nullptr;
+        this->refracted_path = nullptr;
     }
 }
 
@@ -207,12 +233,14 @@ real RayPath::eval(const Density& density, const int& num_samples) const {
     std::uniform_real_distribution<real> distribution(0.0, 1.0);
 
     const int trunk_samples = (int) (num_samples * this->length / this->total_length);
-    real result;
-    if (this->child) {
-        result = child->eval(density, num_samples - trunk_samples) * this->end_alpha;
-        result += this->end_amplitude * (1 - this->end_alpha);
-    } else {
-        result = this->end_amplitude;
+    real result = this->end_amplitude;
+    if (this->refracted_path != nullptr) {
+        result *= (1 - this->refraction_weight);
+        result += this->refracted_path->eval(density, num_samples - trunk_samples) * this->refraction_weight;
+    }
+    if (this->reflected_path != nullptr) {
+        result *= (1 - this->reflection_weight);
+        result += this->reflected_path->eval(density, num_samples - trunk_samples) * this->reflection_weight;
     }
     real dt = 1.0 / (real)(trunk_samples);
     real du = this->length * dt;

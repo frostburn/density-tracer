@@ -28,6 +28,20 @@ public:
     virtual real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& frequency) const = 0;
 };
 
+class Black : public Pigment {
+public:
+    real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& frequency) const {
+        return 0;
+    }
+};
+
+class White : public Pigment {
+public:
+    real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& frequency) const {
+        return 1;
+    }
+};
+
 class Density {
 public:
     virtual std::pair<real, real> eval(const quaternion& location, const quaternion& direction, const real& frequency) const = 0;
@@ -45,6 +59,8 @@ public:
     quaternion right_transform = Q_ONE;
     const Pigment *pigment;
     const Pigment *reflectivity;
+    const Pigment *transparency;
+    const Pigment *ior;
     virtual std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const = 0;
 };
 
@@ -65,15 +81,18 @@ public:
 
 class RayPath {
     real frequency;
+    real index;
     quaternion start;
     quaternion direction;
     real length;
     real total_length;
     real end_amplitude;
-    real end_alpha;
-    RayPath *child;
+    real reflection_weight;
+    real refraction_weight;
+    RayPath *reflected_path;
+    RayPath *refracted_path;
 public:
-    RayPath(const quaternion& origin, const quaternion& direction_, const std::vector<std::shared_ptr<Traceable>>& objects, const SkySphere& sky_sphere, const real& max_length, const int& max_depth, const real& frequency_);
+    RayPath(const quaternion& origin, const quaternion& direction_, const std::vector<std::shared_ptr<Traceable>>& objects, const SkySphere& sky_sphere, const real& max_length, const int& max_depth, const real& frequency_, const real& index_);
 
     real eval(const Density& density, const int& num_samples) const;
 };

@@ -66,8 +66,18 @@ void test_tetrahedron() {
     assert(isclose(n2, normalize(origin)));
 }
 
+void test_plane() {
+    quaternion origin = {0, 1, 2, 3};
+    quaternion direction = normalize(-origin);
+    Plane plane;
+    auto [distance, normal] = plane.trace(origin, direction);
+    assert(fabs(distance - norm(origin)) < EPSILON);
+    assert(normal == Q_J);
+}
+
 int main() {
     test_color();
     test_ball();
     test_tetrahedron();
+    test_plane();
 }
