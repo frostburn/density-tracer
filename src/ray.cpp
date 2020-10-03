@@ -7,6 +7,34 @@
 const real EPSILON = 1e-8;
 const real ISQRT_3 = 0.5773502691896258;
 
+color frequency_to_rgb(const real& frequency) {
+    if (frequency < FREQ_NEAR_INFRARED) {
+        return C_BLACK;
+    }
+    if (frequency < FREQ_RED) {
+        return (color){0, frequency - FREQ_NEAR_INFRARED, 0, 0};
+    }
+    if (frequency < FREQ_YELLOW) {
+        return (color){0, 1, frequency - FREQ_RED, 0};
+    }
+    if (frequency < FREQ_GREEN) {
+        return (color){0, FREQ_GREEN - frequency, 1, 0};
+    }
+    if (frequency < FREQ_CYAN) {
+        return (color){0, 0, 1, frequency - FREQ_GREEN};
+    }
+    if (frequency < FREQ_BLUE) {
+        return (color){0, 0, FREQ_BLUE - frequency, 1};
+    }
+    if (frequency < FREQ_VIOLET) {
+        return (color){0, 0.5*(frequency - FREQ_BLUE), 0, 1};
+    }
+    if (frequency < FREQ_NEAR_ULTRAVIOLET) {
+        return (color){0, 0.5*(FREQ_NEAR_ULTRAVIOLET - frequency), 0, FREQ_NEAR_ULTRAVIOLET - frequency};
+    }
+    return C_BLACK;
+}
+
 std::pair<real, quaternion> Plane::trace(const quaternion& origin, const quaternion& direction) const {
     if (origin.y > 0) {
         if (direction.y < -EPSILON) {
@@ -124,11 +152,17 @@ std::pair<real, quaternion> Ball::trace(const quaternion& origin, const quaterni
     return std::make_pair(std::numeric_limits<real>::infinity(), Q_ZERO);
 }
 
-RayPath::RayPath(const quaternion& origin, const quaternion& direction, const std::vector<std::shared_ptr<Traceable>>& objects, const SkySphere& sky_sphere, const real& max_length, const int& max_depth) {
+RayPath::RayPath(
+    const quaternion& origin, const quaternion& direction,
+    const std::vector<std::shared_ptr<Traceable>>& objects,
+    const SkySphere& sky_sphere,
+    const real& max_length, const int& max_depth,
+    const real& frequency) {
     this->start = origin;
     this->direction = direction;
-    this->length = std::numeric_limits<real>::infinity();
     this->total_length = max_length;
+    this->frequency = frequency;
+    this->length = std::numeric_limits<real>::infinity();
     if (max_depth > 0) {
         quaternion closest_normal;
         std::shared_ptr<Traceable> closest_object;
@@ -146,52 +180,47 @@ RayPath::RayPath(const quaternion& origin, const quaternion& direction, const st
         if (this->length < max_length) {
             closest_normal = inverse(closest_object->left_transform)*closest_normal*inverse(closest_object->right_transform);
             quaternion end = origin + direction * this->length;
-            this->end_color = closest_object->pigment->eval(end, direction, closest_normal);
-            this->end_alpha = closest_object->reflectivity;
-            if (closest_object->reflectivity != 0) {
+            this->end_amplitude = closest_object->pigment->eval(end, direction, closest_normal, frequency);
+            this->end_alpha = closest_object->reflectivity->eval(end, direction, closest_normal, frequency);
+            if (this->end_alpha != 0) {
                 const quaternion reflected_direction = direction - 2 * dot(direction, closest_normal) * closest_normal;
-                this->child = new RayPath(end + reflected_direction * EPSILON, reflected_direction, objects, sky_sphere, max_length - this->length, max_depth - 1);
+                this->child = new RayPath(end + reflected_direction * EPSILON, reflected_direction, objects, sky_sphere, max_length - this->length, max_depth - 1, frequency);
             } else {
                 this->child = nullptr;
             }
         } else {
             this->length = max_length;
-            this->end_color = sky_sphere.eval(direction);
+            this->end_amplitude = sky_sphere.eval(direction, frequency);
             this->end_alpha = 0;
             this->child = nullptr;
         }
     } else {
         this->length = EPSILON;
-        this->end_color = Q_ZERO;
+        this->end_amplitude = 0;
         this->end_alpha = 0;
         this->child = nullptr;
     }
 }
 
-quaternion RayPath::eval(const Density& density, const int& num_samples) const {
+real RayPath::eval(const Density& density, const int& num_samples) const {
     std::default_random_engine generator;
     std::uniform_real_distribution<real> distribution(0.0, 1.0);
 
     const int trunk_samples = (int) (num_samples * this->length / this->total_length);
-    color result;
+    real result;
     if (this->child) {
         result = child->eval(density, num_samples - trunk_samples) * this->end_alpha;
-        result = result + this->end_color * (1 - this->end_alpha);
+        result += this->end_amplitude * (1 - this->end_alpha);
     } else {
-        result = this->end_color;
+        result = this->end_amplitude;
     }
     real dt = 1.0 / (real)(trunk_samples);
     real du = this->length * dt;
     for (int i = 0; i < trunk_samples; ++i) {
         real t = (trunk_samples - i - distribution(generator)) * du;
-        auto [illumination, absorption] = density.eval(this->start + t*this->direction, this->direction);
-        result = result + du*illumination;
-        result = {
-            0,
-            result.x * exp(-absorption.x*du),
-            result.y * exp(-absorption.y*du),
-            result.z * exp(-absorption.z*du)
-        };
+        auto [illumination, absorption] = density.eval(this->start + t*this->direction, this->direction, this->frequency);
+        result += du*illumination;
+        result *= exp(-absorption*du);
     }
     return result;
 }

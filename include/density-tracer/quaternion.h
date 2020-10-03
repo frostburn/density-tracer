@@ -15,13 +15,22 @@ struct quaternion
 
 typedef quaternion color;
 
-#define Q_ONE ((quaternion){1, 0, 0, 0})
-#define Q_ZERO ((quaternion){0, 0, 0, 0})
+const color C_BLACK = {0, 0, 0, 0};
+const color C_RED = {0, 1, 0, 0};
+const color C_YELLOW = {0, 1, 1, 0};
+const color C_GREEN = {0, 0, 1, 0};
+const color C_CYAN = {0, 0, 1, 1};
+const color C_BLUE = {0, 0, 0, 1};
+const color C_MAGENTA = {0, 1, 0, 1};
+const color C_WHITE = {0, 1, 1, 1};
 
-#define Q_W ((quaternion){1, 0, 0, 0})
-#define Q_I ((quaternion){0, 1, 0, 0})
-#define Q_J ((quaternion){0, 0, 1, 0})
-#define Q_K ((quaternion){0, 0, 0, 1})
+const quaternion Q_ONE = {1, 0, 0, 0};
+const quaternion Q_ZERO = {0, 0, 0, 0};
+
+const quaternion Q_W = {1, 0, 0, 0};
+const quaternion Q_I = {0, 1, 0, 0};
+const quaternion Q_J = {0, 0, 1, 0};
+const quaternion Q_K = {0, 0, 0, 1};
 
 std::ostream& operator<<(std::ostream& os, const quaternion& q);
 

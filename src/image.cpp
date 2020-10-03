@@ -9,7 +9,7 @@ color* downscale(color *pixels, int result_height, int result_width, int factor)
     #pragma omp parallel for
     for (int j = 0; j < result_height; ++j) {
         for (int i = 0; i < result_width; ++i) {
-            color pixel = Q_ZERO;
+            color pixel = C_BLACK;
             for (int sub_j = 0; sub_j < factor; ++sub_j) {
                 for (int sub_i = 0; sub_i < factor; ++sub_i) {
                     int idx = i*factor + sub_i + (j*factor + sub_j) * (result_width*factor);

@@ -35,7 +35,7 @@ void test_hurwitz() {
 void test_eulers_identity() {
     assert(isclose(Q_ONE + exp(M_PI * Q_I), Q_ZERO));
     assert(isclose(Q_ONE + exp(M_PI * Q_J), Q_ZERO));
-    assert(isclose(Q_ONE + exp(M_PI * Q_K), Q_ZERO));
+    assert(isclose(Q_W + exp(M_PI * Q_K), Q_ZERO));
 }
 
 void test_cross() {

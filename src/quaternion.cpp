@@ -196,7 +196,7 @@ color clip_color(const color& a) {
         pixel.x = 0;
     }
     if (std::isnan(pixel.x)) {
-        pixel.x = 0.5;
+        pixel.x = 1.0;
     }
     if (pixel.y > 1) {
         pixel.y = 1;
@@ -205,7 +205,7 @@ color clip_color(const color& a) {
         pixel.y = 0;
     }
     if (std::isnan(pixel.y)) {
-        pixel.y = 0.5;
+        pixel.y = 0.25;
     }
     if (pixel.z > 1) {
         pixel.z = 1;
@@ -214,7 +214,7 @@ color clip_color(const color& a) {
         pixel.z = 0;
     }
     if (std::isnan(pixel.z)) {
-        pixel.z = 0.5;
+        pixel.z = 0.75;
     }
     return pixel;
 }
