@@ -46,6 +46,16 @@ void test_rotate() {
     assert(isclose(rotate(2*Q_I, 3*Q_K, 0.5*M_PI), 2*Q_J));
 }
 
+void test_pow() {
+    quaternion q = pow(Q_I, 0.5);
+    assert(isclose(q*q, Q_I));
+    quaternion a = {5, -6, 7, -8};
+    q = pow(a, 1/3.0);
+    assert(isclose(q*q*q, a));
+    q = {-1, 0, 0, 0};
+    assert(isclose(pow(q, 0.5), Q_I));
+}
+
 int main() {
     test_sir_william_rowan_hamilton_on_16th_of_october_1843();
     test_multiplication();
@@ -53,4 +63,5 @@ int main() {
     test_eulers_identity();
     test_cross();
     test_rotate();
+    test_pow();
 }

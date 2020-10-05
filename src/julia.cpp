@@ -1,5 +1,6 @@
+#include <algorithm>
 #include <cmath>
-#include <utility>
+#include <limits>
 
 #include "density-tracer/julia.h"
 
@@ -58,10 +59,10 @@ real abc_julia(quaternion q, const quaternion& a, const quaternion& b, const qua
     const quaternion d = a + b;
     const quaternion e = a - b;
     int i = 0;
-    real r = 0;
+    real r2 = 0;
     for (; i < num_iter; ++i) {
-        r = norm2(q);
-        if (r > BAILOUT) {
+        r2 = norm2(q);
+        if (r2 > BAILOUT) {
             break;
         }
         // Optimized version of: q = q*q + q*a + b*q + c
@@ -73,8 +74,103 @@ real abc_julia(quaternion q, const quaternion& a, const quaternion& b, const qua
             q.w*f.z + q.z*f.w + q.x*e.y - q.y*e.x + c.z,
         };
     }
-    if (r < M_E*M_E) {
-        return -sqrt(r);
+    if (r2 < M_E*M_E) {
+        return -sqrt(r2);
     }
-    return log(log(r)) * 1.4426950408889634 - 2.0 + num_iter - i;
+    return log(log(r2)) * 1.4426950408889634 - 2.0 + num_iter - i;
+}
+
+
+real min_r(const real& a, const real& b) {
+    return std::min(a, b);
+}
+
+real shifted_potential(const real& r2, const int& remaining_iterations, const real& inverse_log_exponent) {
+    return log(log(r2 + 1.0 + EPSILON)*0.5) * inverse_log_exponent + remaining_iterations;
+}
+
+
+MultiBranchMandelbrot::MultiBranchMandelbrot(const int& numerator, const int& denominator, const int& num_iter, const unsigned long long& inside_cutoff, const bool& clip_outside, const real& bailout, R2Mapper r2_mapper, Reducer reducer, const real& empty) {
+    this->roots_of_unity = new real[2*denominator];
+    for (int i = 0; i < denominator; ++i) {
+        this->roots_of_unity[2*i+0] = cos(i*2*M_PI/(real)denominator);
+        this->roots_of_unity[2*i+1] = sin(i*2*M_PI/(real)denominator);
+    }
+    this->denominator = denominator;
+    this->exponent = numerator / (real)denominator;
+    this->inverse_log_exponent = 1.0 / log(this->exponent);
+
+    this->num_iter = num_iter;
+    this->inside_cutoff = inside_cutoff;
+    this->clip_outside = clip_outside;
+    this->bailout = bailout;
+    this->r2_mapper = r2_mapper;
+    this->reducer = reducer;
+    this->empty = empty;
+}
+
+MultiBranchMandelbrot::~MultiBranchMandelbrot() {
+    delete[] this->roots_of_unity;
+}
+
+void MultiBranchMandelbrot::accumulate(unsigned long long *inside_counter, real *outside_accumulator, quaternion q, const quaternion& c, const int& num_iter) const {
+    if (this->inside_cutoff && *inside_counter >= this->inside_cutoff) {
+        return;
+    }
+    const real w2 = q.w*q.w;
+    const real im2 = q.x*q.x + q.y*q.y + q.z*q.z;
+    const real r2 = w2 + im2;
+    if (r2 >= this->bailout || num_iter == 0) {
+        if (!this->clip_outside || *inside_counter == 0) {
+            const real v = this->r2_mapper(r2, num_iter, this->inverse_log_exponent);
+            *outside_accumulator = this->reducer(*outside_accumulator, v);
+        }
+        return;
+    }
+    if (num_iter == 0) {
+        *inside_counter = *inside_counter + 1;
+        return;
+    }
+    const real rim = sqrt(im2);
+    if (fabs(rim) < EPSILON) {
+        const real theta = atan2(q.x, q.w) * this->exponent;
+        const real r = pow(r2, this->exponent*0.5);
+        const real w = cos(theta) * r;
+        const real im = sin(theta) * r;
+        for (int i = 0; i < this->denominator; ++i) {
+            real w_ = w * this->roots_of_unity[2*i] + im * this->roots_of_unity[2*i + 1];
+            real im_ = im * this->roots_of_unity[2*i] - w *this->roots_of_unity[2*i + 1];
+            this->accumulate(
+                inside_counter, outside_accumulator,
+                (quaternion){w_ + c.w, im_ + c.x, c.y, c.z},
+                c, num_iter - 1
+            );
+        }
+    } else {
+        const real theta = atan2(rim, q.w) * this->exponent;
+        const real rimn = 1.0 / rim;
+        const real r = pow(r2, this->exponent*0.5);
+        const real w = cos(theta) * r;
+        const real im = sin(theta) * r;
+        const real wn = w * rimn;
+        const real imn = im * rimn;
+        for (int i = 0; i < this->denominator; ++i) {
+            real w_ = w * this->roots_of_unity[2*i] + im * this->roots_of_unity[2*i + 1];
+            real imn_ = imn * this->roots_of_unity[2*i] - wn * this->roots_of_unity[2*i + 1];
+            this->accumulate(
+                inside_counter, outside_accumulator,
+                (quaternion){w_ + c.w, q.x*imn_ + c.x, q.y*imn_ + c.y, q.z*imn_ + c.z},
+                c, num_iter - 1
+            );
+        }
+    }
+}
+
+std::pair<unsigned long long int, real> MultiBranchMandelbrot::eval(const quaternion& q, const quaternion& c) const {
+    unsigned long long int inside_counter = 0;
+    real outside_accumulator = this->empty;
+
+    this->accumulate(&inside_counter, &outside_accumulator, q, c, this->num_iter);
+
+    return std::make_pair(inside_counter, outside_accumulator);
 }

@@ -78,6 +78,7 @@ quaternion imag(const quaternion& q);
 quaternion normalize(const quaternion& q);
 
 quaternion pow(const quaternion& a, const int& b);
+quaternion pow(const quaternion& q, const real& b);
 
 real dot(const quaternion& a, const quaternion& b);
 
@@ -92,5 +93,24 @@ quaternion rotate(const quaternion& q, const quaternion& axis, const real& angle
 quaternion exp(const quaternion& q);
 
 color clip_color(const color& c);
+
+inline quaternion square(const quaternion& q) {
+    return (quaternion){
+        q.w*q.w - q.x*q.x - q.y*q.y - q.z*q.z,
+        2*q.w*q.x,
+        2*q.w*q.y,
+        2*q.w*q.z
+    };
+}
+
+// Quaternions in the same imaginary plane have zero cross terms.
+inline quaternion aligned_mul(const quaternion& a, const quaternion& b) {
+    return (quaternion){
+        a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
+        a.w*b.x + a.x*b.w,
+        a.w*b.y + a.y*b.w,
+        a.w*b.z + a.z*b.w
+    };
+}
 
 #endif

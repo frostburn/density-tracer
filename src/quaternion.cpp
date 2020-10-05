@@ -108,25 +108,6 @@ quaternion normalize(const quaternion& q) {
     return q / norm(q);
 }
 
-inline quaternion square(const quaternion& q) {
-    return (quaternion){
-        q.w*q.w - q.x*q.x - q.y*q.y - q.z*q.z,
-        2*q.w*q.x,
-        2*q.w*q.y,
-        2*q.w*q.z
-    };
-}
-
-// Quaternions in the same imaginary plane have zero cross terms.
-inline quaternion aligned_mul(const quaternion& a, const quaternion& b) {
-    return (quaternion){
-        a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
-        a.w*b.x + a.x*b.w,
-        a.w*b.y + a.y*b.w,
-        a.w*b.z + a.z*b.w
-    };
-}
-
 quaternion pow(const quaternion& a, const int& b) {
     quaternion res = Q_ONE;
     quaternion m = a;
@@ -142,6 +123,28 @@ quaternion pow(const quaternion& a, const int& b) {
         return inverse(res);
     }
     return res;
+}
+
+quaternion pow(const quaternion& q, const real& b) {
+    const real w2 = q.w*q.w;
+    const real im2 = q.x*q.x + q.y*q.y + q.z*q.z;
+    const real r2 = w2 + im2;
+    const real rim = sqrt(im2);
+    if (fabs(rim) < EPSILON) {
+        const real theta = atan2(q.x, q.w) * b;
+        const real r = pow(r2, b*0.5);
+        const real w = cos(theta) * r;
+        const real im = sin(theta) * r;
+        return {w, im, 0, 0};
+    } else {
+        const real theta = atan2(rim, q.w) * b;
+        const real rimn = 1.0 / rim;
+        const real r = pow(r2, b*0.5);
+        const real w = cos(theta) * r;
+        const real im = sin(theta) * r;
+        const real imn = im * rimn;
+        return {w, q.x*imn, q.y*imn, q.z*imn};
+    }
 }
 
 real dot(const quaternion& a, const quaternion& b) {

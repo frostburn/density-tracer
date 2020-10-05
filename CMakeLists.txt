@@ -15,6 +15,12 @@ ADD_SUBDIRECTORY(test)
 ADD_EXECUTABLE(render main.cpp)
 TARGET_LINK_LIBRARIES(render density-tracer)
 
+ADD_EXECUTABLE(render2D main2D.cpp)
+TARGET_LINK_LIBRARIES(render2D density-tracer)
+
+ADD_EXECUTABLE(render-ortho main_orthographic.cpp)
+TARGET_LINK_LIBRARIES(render-ortho density-tracer)
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
