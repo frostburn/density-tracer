@@ -103,6 +103,18 @@ inline quaternion square(const quaternion& q) {
     };
 }
 
+inline quaternion cube(const quaternion& q) {
+    const real w2 = q.w*q.w;
+    const real xyz2 = q.x*q.x + q.y*q.y + q.z*q.z;
+    const real wxyz = 3*w2 - xyz2;
+    return (quaternion){
+        q.w*(w2 - 3*xyz2),
+        q.x*wxyz,
+        q.y*wxyz,
+        q.z*wxyz
+    };
+}
+
 // Quaternions in the same imaginary plane have zero cross terms.
 inline quaternion aligned_mul(const quaternion& a, const quaternion& b) {
     return (quaternion){

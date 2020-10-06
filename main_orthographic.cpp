@@ -16,7 +16,7 @@ real potential(const real& r2, const int& remaining_iterations, const real& inve
 int main(int argc, char *argv[])
 {
     const int scale = 10;
-    const int anti_alias = 2;
+    const int anti_alias = 3;
     const int depth = 1 << 12;
     const real clip_start = -2.0;
     const real clip_end = 2.0;
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     uniform_real_distribution<real> distribution(0, 1);
     const real du = (clip_end - clip_start) / (real) depth;
 
-    MultiBranchMandelbrot brot(5, 2, 11, 0, false, 1<<12, potential, min_r, numeric_limits<real>::infinity());
+    // MultiBranchMandelbrot brot(5, 2, 11, 0, false, 1<<12, potential, min_r, numeric_limits<real>::infinity());
 
     #pragma omp parallel for
     for (int j = 0; j < height; ++j) {
@@ -50,14 +50,22 @@ int main(int argc, char *argv[])
             color pixel = C_WHITE*0.015;
             for (int k = 0; k < depth; ++k) {
                 real t = (depth - k - distribution(generator)) * du + clip_start;
-                quaternion q = {view_x - 0.15, 0.4 - view_y*0.8, t, 0};
+                quaternion q = {1.6*view_x, 1.6*view_y, t, 0};
+
                 q = rotate(q, {0, 1, 2, -3}, -2.5);
                 quaternion rot = rotor({0, 4, -5, 6}, 5.15);
                 q = rot*q*rot;
-                auto [inside, outside] = brot.eval(q, {0.82, -0.15, -0.54, 0.65});
 
-                color illumination = {0, 2.5*exp(-outside*outside), 2.9*exp(-10*outside*outside), 3.0*exp(-15*outside*outside)};
-                color absorption = {0, tanh(inside*0.01)*0.1 + 0.15, tanh(inside*0.1)*0.1 + 0.15, tanh(inside*0.001)*0.1 + 0.15 + exp(-0.5*outside)};
+                real r = orthoplex(q, {0.4, 0.5, 0.6, -0.7}, 4, 22);
+
+                color illumination, absorption;
+                if (r < 0) {
+                    illumination = C_BLACK;
+                    absorption = {0, -2*r, -r, 1-r};
+                } else {
+                    illumination = {0, 3*exp(-0.26*(r-1)*(r-1)), 4*exp(-0.2*(r-5)*(r-5)), 20*exp(-0.3*r)};
+                    absorption = {0, 0.1, 0.1, 0.1};
+                }
 
                 pixel = pixel + du * illumination;
                 pixel = {0, pixel.x * exp(-absorption.x*du), pixel.y * exp(-absorption.y*du), pixel.z * exp(-absorption.z*du)};

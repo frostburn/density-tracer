@@ -13,6 +13,8 @@ real classic_mandelbrot(quaternion q, const quaternion& c, const int& num_iter);
 
 real abc_julia(quaternion q, const quaternion& a, const quaternion& b, const quaternion& c, const int& num_iter);
 
+real orthoplex(quaternion q, const quaternion& c, const int& exponent, const int& num_iter);
+
 typedef std::function<real(const real&, const real&)> Reducer;
 typedef std::function<real(const real&, const int&, const real&)> R2Mapper;
 

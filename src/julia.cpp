@@ -80,6 +80,22 @@ real abc_julia(quaternion q, const quaternion& a, const quaternion& b, const qua
     return log(log(r2)) * 1.4426950408889634 - 2.0 + num_iter - i;
 }
 
+real orthoplex(quaternion q, const quaternion& c, const int& exponent, const int& num_iter) {
+    int i = 0;
+    real r2 = 0;
+    for (; i < num_iter; ++i) {
+        r2 = norm2(q);
+        if (r2 > BAILOUT) {
+            break;
+        }
+        q = 0.25*(pow(q, exponent) - Q_I * pow(Q_I*q, exponent) - Q_J * pow(Q_J*q, exponent) - Q_K * pow(Q_K*q, exponent)) + c;
+    }
+    if (r2 < M_E*M_E) {
+        return -sqrt(r2);
+    }
+    return log(log(r2)*0.5) / log(exponent) + (num_iter - 1 - i);
+}
+
 
 real min_r(const real& a, const real& b) {
     return std::min(a, b);

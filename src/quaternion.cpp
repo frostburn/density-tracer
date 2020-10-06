@@ -109,18 +109,39 @@ quaternion normalize(const quaternion& q) {
 }
 
 quaternion pow(const quaternion& a, const int& b) {
-    quaternion res = Q_ONE;
-    quaternion m = a;
-    int exponent = abs(b);
+    if (b == 2) {
+        return square(a);
+    }
+    if (b == 3) {
+        return cube(a);
+    }
+    if (b == 5) {
+        return aligned_mul(square(a), cube(a));
+    }
+    if (b == 0) {
+        return Q_ONE;
+    }
+    if (b == 1) {
+        return a;
+    }
+    if (b < 0) {
+        return pow(inverse(a), -b);
+    }
+    if (!(b & 1)) {
+        return pow(square(a), b >> 1);
+    }
+    if (b % 3 == 0) {
+        return pow(cube(a), b / 3);
+    }
+    quaternion res = a;
+    quaternion m = square(a);
+    int exponent = b >> 1;
     while (exponent > 0) {
         if (exponent & 1) {
             res = aligned_mul(res, m);
         }
         m = square(m);
         exponent >>= 1;
-    }
-    if (b < 0) {
-        return inverse(res);
     }
     return res;
 }

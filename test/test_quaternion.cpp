@@ -54,6 +54,13 @@ void test_pow() {
     assert(isclose(q*q*q, a));
     q = {-1, 0, 0, 0};
     assert(isclose(pow(q, 0.5), Q_I));
+
+    a = {-3, 5, -2, 1};
+    q = Q_ONE;
+    for (int i = 0; i < 21; ++i) {
+        assert(pow(a, i) == q);
+        q = q*a;
+    }
 }
 
 int main() {
