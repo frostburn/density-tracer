@@ -15,6 +15,8 @@ real abc_julia(quaternion q, const quaternion& a, const quaternion& b, const qua
 
 real orthoplex(quaternion q, const quaternion& c, const int& exponent, const int& num_iter);
 
+real pentatope(quaternion q, const quaternion& c, const int& num_iter);
+
 typedef std::function<real(const real&, const real&)> Reducer;
 typedef std::function<real(const real&, const int&, const real&)> R2Mapper;
 
@@ -45,5 +47,7 @@ public:
     void accumulate(unsigned long long *inside_counter, real *outside_accumulator, quaternion q, const quaternion& c, const int& num_iter) const;
     std::pair<unsigned long long int, real> eval(const quaternion& q, const quaternion& c) const;
 };
+
+std::pair<unsigned long long, real> multibranch_pentatope(quaternion q, const quaternion& c, const int& num_iter, const unsigned long long& inside_cutoff, const bool& clip_outside, const real& bailout, R2Mapper r2_mapper, Reducer reducer, const real& empty);
 
 #endif

@@ -50,20 +50,24 @@ int main(int argc, char *argv[])
             color pixel = C_WHITE*0.015;
             for (int k = 0; k < depth; ++k) {
                 real t = (depth - k - distribution(generator)) * du + clip_start;
-                quaternion q = {1.6*view_x, 1.6*view_y, t, 0};
+                quaternion q = {1.8*view_x+0.2, 1.8*view_y+0.05, t, 0};
 
                 q = rotate(q, {0, 1, 2, -3}, -2.5);
-                quaternion rot = rotor({0, 4, -5, 6}, 5.15);
+                quaternion rot = rotor({0, 4, -5, 6}, 1.15);
                 q = rot*q*rot;
 
-                real r = orthoplex(q, {0.4, 0.5, 0.6, -0.7}, 4, 22);
+                // real r = orthoplex(q, {0.4, 0.5, 0.6, -0.7}, 4, 22);
+                real r = pentatope(q, q, 12);
+
+                // auto [inside, r] = multibranch_pentatope(q, q, 6, 1, true, 1<<6, shifted_potential, min_r, numeric_limits<real>::infinity());
+
 
                 color illumination, absorption;
                 if (r < 0) {
                     illumination = C_BLACK;
-                    absorption = {0, -2*r, -r, 1-r};
+                    absorption = {0, 15, 15, 15};
                 } else {
-                    illumination = {0, 3*exp(-0.26*(r-1)*(r-1)), 4*exp(-0.2*(r-5)*(r-5)), 20*exp(-0.3*r)};
+                    illumination = {0, 10*exp(-0.05*r*r), 12*exp(-0.3*r*r), 22*exp(-0.7*r*r)};
                     absorption = {0, 0.1, 0.1, 0.1};
                 }
 

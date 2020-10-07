@@ -96,6 +96,95 @@ real orthoplex(quaternion q, const quaternion& c, const int& exponent, const int
     return log(log(r2)*0.5) / log(exponent) + (num_iter - 1 - i);
 }
 
+const quaternion P1 = {-0.25, 0.5590169943749475, 0.5590169943749475, 0.5590169943749475};
+const quaternion P2 = {-0.25, 0.5590169943749475, -0.5590169943749475, -0.5590169943749475};
+const quaternion P3 = {-0.25, -0.5590169943749475, 0.5590169943749475, -0.5590169943749475};
+const quaternion P4 = {-0.25, -0.5590169943749475, -0.5590169943749475, 0.5590169943749475};
+
+const quaternion IP1 = {-0.25, -0.5590169943749475, -0.5590169943749475, -0.5590169943749475};
+const quaternion IP2 = {-0.25, -0.5590169943749475, 0.5590169943749475, 0.5590169943749475};
+const quaternion IP3 = {-0.25, 0.5590169943749475, -0.5590169943749475, 0.5590169943749475};
+const quaternion IP4 = {-0.25, 0.5590169943749475, 0.5590169943749475, -0.5590169943749475};
+
+void multibranch_pentatope_accumulate(unsigned long long *inside_counter, real *outside_accumulator, quaternion q, const quaternion& c, const int& num_iter, const unsigned long long int& inside_cutoff, const bool& clip_outside, const real& bailout, R2Mapper r2_mapper, Reducer reducer) {
+    if (inside_cutoff && *inside_counter >= inside_cutoff) {
+        return;
+    }
+    const real w2 = q.w*q.w;
+    const real im2 = q.x*q.x + q.y*q.y + q.z*q.z;
+    const real r2 = w2 + im2;
+    if (r2 >= bailout || num_iter == 0) {
+        if (clip_outside || *inside_counter == 0) {
+            const real v = r2_mapper(r2, num_iter, 1.4426950408889634);
+            *outside_accumulator = reducer(*outside_accumulator, v);
+        }
+        return;
+    }
+    if (num_iter == 0) {
+        *inside_counter = *inside_counter + 1;
+        return;
+    }
+    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, {w2 - im2 + c.w, 2*q.w*q.x + c.x, 2*q.w*q.y + c.y, 2*q.w*q.z + c.z}, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, square(q*IP1)*P1 + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, square(q*IP2)*P2 + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, square(q*IP3)*P3 + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, square(q*IP4)*P4 + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+}
+
+std::pair<unsigned long long, real> multibranch_pentatope(quaternion q, const quaternion& c, const int& num_iter, const unsigned long long& inside_cutoff, const bool& clip_outside, const real& bailout, R2Mapper r2_mapper, Reducer reducer, const real& empty) {
+    unsigned long long int inside_counter = 0;
+    real outside_accumulator = empty;
+
+    multibranch_pentatope_accumulate(&inside_counter, &outside_accumulator, q, c, num_iter, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+
+    return std::make_pair(inside_counter, outside_accumulator);
+}
+
+real pentatope(quaternion q, const quaternion& c, const int& num_iter) {
+    int i = 0;
+    real r2 = norm2(q);
+    for (; i < num_iter; ++i) {
+        if (r2 > BAILOUT) {
+            break;
+        }
+        const quaternion q0 = square(q) + c;
+        const quaternion q1 = square(q*IP1)*P1 + c;
+        const quaternion q2 = square(q*IP2)*P2 + c;
+        const quaternion q3 = square(q*IP3)*P3 + c;
+        const quaternion q4 = square(q*IP4)*P4 + c;
+
+        q = q0;
+        r2 = norm2(q);
+
+        real r2_n = norm2(q1);
+        if (r2_n < r2) {
+            q = q1;
+            r2 = r2_n;
+        }
+
+        r2_n = norm2(q2);
+        if (r2_n < r2) {
+            q = q2;
+            r2 = r2_n;
+        }
+
+        r2_n = norm2(q3);
+        if (r2_n < r2) {
+            q = q3;
+            r2 = r2_n;
+        }
+
+        r2_n = norm2(q4);
+        if (r2_n < r2) {
+            q = q4;
+            r2 = r2_n;
+        }
+    }
+    if (r2 < M_E*M_E) {
+        return -sqrt(r2);
+    }
+    return log(log(r2)) * 1.4426950408889634 - 2.0 + num_iter - i;
+}
 
 real min_r(const real& a, const real& b) {
     return std::min(a, b);
