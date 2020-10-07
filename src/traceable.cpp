@@ -93,6 +93,52 @@ std::pair<real, quaternion> Tetrahedron::trace(const quaternion& origin, const q
     return std::make_pair(std::numeric_limits<real>::infinity(), Q_ZERO);
 }
 
+ConvexPolyhedron::ConvexPolyhedron(const std::vector<quaternion> planes) {
+    this->planes = planes;
+}
+
+std::pair<real, quaternion> ConvexPolyhedron::trace(const quaternion& origin, const quaternion& direction) const {
+    real closest = std::numeric_limits<real>::infinity();
+    quaternion closest_plane = Q_ONE;
+
+    std::vector<quaternion>::const_iterator plane;
+    for (plane = this->planes.begin(); plane != this->planes.end(); ++plane) {
+        real o = dot(origin, *plane);
+        real d = dot(direction, *plane);
+        real t;
+        if (fabs(d) > EPSILON) {
+            t = (1-o) / d;
+        } else {
+            continue;
+        }
+        quaternion intersection = origin + t*direction;
+        std::vector<quaternion>::const_iterator edge_plane;
+        for (edge_plane = this->planes.begin(); edge_plane != this->planes.end(); ++edge_plane) {
+            if (edge_plane == plane) {
+                continue;
+            }
+            if (dot(intersection, *edge_plane) > 1) {
+                t = -1;
+                break;
+            };
+        }
+        if (t > 0 && t < closest) {
+            closest = t;
+            closest_plane = *plane;
+        }
+    }
+
+    return std::make_pair(closest, normalize(closest_plane));
+}
+
+TrianglePrism::TrianglePrism() : ConvexPolyhedron({}) {
+    this->planes = {
+        {0, -0.5, 0.8660254037844385, 0}, {0, -0.5, -0.8660254037844385, 0},
+        Q_I, Q_K, -Q_K
+    };
+}
+
+
 HemiConvex::HemiConvex(const std::vector<quaternion> planes) {
     this->planes = planes;
 }

@@ -15,6 +15,18 @@ public:
     std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const;
 };
 
+class ConvexPolyhedron : public Traceable {
+public:
+    std::vector<quaternion> planes;
+    ConvexPolyhedron(const std::vector<quaternion> planes);
+    std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const;
+};
+
+class TrianglePrism : public ConvexPolyhedron {
+public:
+    TrianglePrism();
+};
+
 class HemiConvex : public Traceable {
 public:
     std::vector<quaternion> planes;
