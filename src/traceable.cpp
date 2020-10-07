@@ -5,6 +5,8 @@
 
 const real EPSILON = 1e-8;
 const real ISQRT_3 = 0.5773502691896258;
+const real PHI = 1.618033988749895;
+const real IPHI = 0.6180339887498948;
 
 std::pair<real, quaternion> Plane::trace(const quaternion& origin, const quaternion& direction) const {
     if ((origin.y < 0 && direction.y > EPSILON) || (origin.y > 0 && direction.y < -EPSILON)) {
@@ -89,6 +91,75 @@ std::pair<real, quaternion> Tetrahedron::trace(const quaternion& origin, const q
         return std::make_pair(t_d, (quaternion){0, -ISQRT_3, -ISQRT_3, ISQRT_3});
     }
     return std::make_pair(std::numeric_limits<real>::infinity(), Q_ZERO);
+}
+
+HemiConvex::HemiConvex(const std::vector<quaternion> planes) {
+    this->planes = planes;
+}
+
+std::pair<real, quaternion> HemiConvex::trace(const quaternion& origin, const quaternion& direction) const {
+    real closest = std::numeric_limits<real>::infinity();
+    quaternion closest_plane = Q_ONE;
+
+    std::vector<quaternion>::const_iterator plane;
+    for (plane = this->planes.begin(); plane != this->planes.end(); ++plane) {
+        quaternion pplane = *plane;
+        real o = dot(origin, pplane);
+        real d = dot(direction, pplane);
+        if (o < -1 || (o < 1 && d < 0)) {
+            pplane = -pplane;
+            o = -o;
+            d = -d;
+        }
+        real t;
+        if (fabs(d) > EPSILON) {
+            t = (1-o) / d;
+        } else {
+            continue;
+        }
+        quaternion intersection = origin + t*direction;
+        std::vector<quaternion>::const_iterator edge_plane;
+        for (edge_plane = this->planes.begin(); edge_plane != this->planes.end(); ++edge_plane) {
+            if (edge_plane == plane) {
+                continue;
+            }
+            if (fabs(dot(intersection, *edge_plane)) > 1) {
+                t = -1;
+                break;
+            };
+        }
+        if (t > 0 && t < closest) {
+            closest = t;
+            closest_plane = pplane;
+        }
+    }
+
+    return std::make_pair(closest, normalize(closest_plane));
+}
+
+Hexahedron::Hexahedron() : HemiConvex({}) {
+    this->planes = {Q_I, Q_J, Q_K};
+}
+
+Octahedron::Octahedron() : HemiConvex({}) {
+    this->planes = {{0, 1, 1, 1}, {0, 1, 1, -1}, {0, 1, -1, 1}, {0, 1, -1, -1}};
+}
+
+Dodecahedron::Dodecahedron() : HemiConvex({}) {
+    this->planes = {
+        {0, 0, 1, PHI}, {0, 0, 1, -PHI},
+        {0, 1, PHI, 0}, {0, 1, -PHI, 0},
+        {0, PHI, 0, 1}, {0, -PHI, 0, 1},
+    };
+}
+
+Icosahedron::Icosahedron() : HemiConvex({}) {
+    this->planes = {
+        {0, 1, 1, 1}, {0, 1, 1, -1}, {0, 1, -1, 1}, {0, 1, -1, -1},
+        {0, PHI, IPHI, 0}, {0, PHI, -IPHI, 0},
+        {0, 0, PHI, IPHI}, {0, 0, PHI, -IPHI},
+        {0, IPHI, 0, PHI}, {0, -IPHI, 0, PHI},
+    };
 }
 
 std::pair<real, quaternion> Ball::trace(const quaternion& origin, const quaternion& direction) const {
