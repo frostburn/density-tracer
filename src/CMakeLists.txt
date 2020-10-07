@@ -7,6 +7,7 @@ ADD_LIBRARY(
   image.cpp
   shapes.cpp
   ray.cpp
+  traceable.cpp
 )
 INSTALL(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../include/density-tracer

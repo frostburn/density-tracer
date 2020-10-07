@@ -7,6 +7,7 @@
 #include "density-tracer/image.h"
 #include "density-tracer/shapes.h"
 #include "density-tracer/ray.h"
+#include "density-tracer/traceable.h"
 
 using namespace std;
 
@@ -81,8 +82,8 @@ public:
 
 int main(int argc, char *argv[])
 {
-    const int scale = 10;
-    const int anti_alias = 3;
+    const int scale = 1;
+    const int anti_alias = 1;
     const int num_samples = 1<<10;
     const int color_samples = 1<<8;
     const ColorMode color_mode = WIDE;

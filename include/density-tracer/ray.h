@@ -64,21 +64,6 @@ public:
     virtual std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const = 0;
 };
 
-class Plane : public Traceable {
-public:
-    std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const;
-};
-
-class Tetrahedron : public Traceable {
-public:
-    std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const;
-};
-
-class Ball : public Traceable {
-public:
-    std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const;
-};
-
 class RayPath {
     real frequency;
     real index;
