@@ -29,6 +29,8 @@ void test_ball() {
     direction = {0, 0, 0, 1};
     auto [d3, n3] = ball.trace(origin, direction);
     assert(d3 == std::numeric_limits<real>::infinity());
+
+    assert(ball.inside(Q_ZERO));
 }
 
 void test_tetrahedron() {

@@ -8,11 +8,59 @@ const real ISQRT_3 = 0.5773502691896258;
 const real PHI = 1.618033988749895;
 const real IPHI = 0.6180339887498948;
 
+
+bool Translate::inside(const quaternion& location) const {
+    return this->object->inside(location - this->location);
+}
+
+std::pair<real, quaternion> Translate::trace(const quaternion& origin, const quaternion& direction) const {
+    return this->object->trace(origin - this->location, direction);
+}
+
+
+Rotate::Rotate(std::shared_ptr<Traceable> obj, quaternion axis, real amount) : Transformation(obj) {
+    this->left_rotor = rotor(axis, amount);
+    this->right_rotor = conjugate(this->left_rotor);
+}
+
+bool Rotate::inside(const quaternion& location) const {
+    return this->object->inside(this->left_rotor * location * this->right_rotor);
+}
+
+std::pair<real, quaternion> Rotate::trace(const quaternion& origin, const quaternion& direction) const {
+    auto [distance, normal] = this->object->trace(
+        this->left_rotor * origin * this->right_rotor,
+        this->left_rotor * direction * this->right_rotor
+    );
+    return std::make_pair(distance, this->right_rotor * normal * this->left_rotor);
+}
+
+bool Scale::inside(const quaternion& location) const {
+    return this->object->inside({0, this->amount.x*location.x, this->amount.y*location.y, this->amount.z*location.z});
+}
+
+std::pair<real, quaternion> Scale::trace(const quaternion& origin, const quaternion& direction) const {
+    const quaternion scaled_origin = {0, this->amount.x*origin.x, this->amount.y*origin.y, this->amount.z*origin.z};
+    const quaternion scaled_direction = normalize({0, this->amount.x*direction.x, this->amount.y*direction.y, this->amount.z*direction.z});
+    auto [distance, normal] = this->object->trace(scaled_origin, scaled_direction);
+    const quaternion scaled_intersection = scaled_origin + distance * scaled_direction;
+    const quaternion intersection = {0, scaled_intersection.x / this->amount.x, scaled_intersection.y / this->amount.y, scaled_intersection.z / this->amount.z};
+    return std::make_pair(norm(origin - intersection), normalize({0, normal.x*this->amount.x, normal.y*this->amount.y, normal.z*this->amount.z}));
+}
+
+bool Plane::inside(const quaternion& location) const {
+    return location.y < 0;
+}
+
 std::pair<real, quaternion> Plane::trace(const quaternion& origin, const quaternion& direction) const {
     if ((origin.y < 0 && direction.y > EPSILON) || (origin.y > 0 && direction.y < -EPSILON)) {
         return std::make_pair(-origin.y / direction.y, Q_J);
     }
     return std::make_pair(std::numeric_limits<real>::infinity(), Q_ZERO);
+}
+
+bool Tetrahedron::inside(const quaternion& i) const {
+    return i.x + i.y + i.z < 1 && i.y - i.x - i.z < 1 && i.x - i.z - i.y < 1 && i.z - i.x - i.y < 1;
 }
 
 std::pair<real, quaternion> Tetrahedron::trace(const quaternion& origin, const quaternion& direction) const {
@@ -97,6 +145,16 @@ ConvexPolyhedron::ConvexPolyhedron(const std::vector<quaternion> planes) {
     this->planes = planes;
 }
 
+bool ConvexPolyhedron::inside(const quaternion& location) const {
+    std::vector<quaternion>::const_iterator plane;
+    for (plane = this->planes.begin(); plane != this->planes.end(); ++plane) {
+        if (dot(location, *plane) >= 1) {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::pair<real, quaternion> ConvexPolyhedron::trace(const quaternion& origin, const quaternion& direction) const {
     real closest = std::numeric_limits<real>::infinity();
     quaternion closest_plane = Q_ONE;
@@ -141,6 +199,16 @@ TrianglePrism::TrianglePrism() : ConvexPolyhedron({}) {
 
 HemiConvex::HemiConvex(const std::vector<quaternion> planes) {
     this->planes = planes;
+}
+
+bool HemiConvex::inside(const quaternion& location) const {
+    std::vector<quaternion>::const_iterator plane;
+    for (plane = this->planes.begin(); plane != this->planes.end(); ++plane) {
+        if (fabs(dot(location, *plane)) >= 1) {
+            return false;
+        }
+    }
+    return true;
 }
 
 std::pair<real, quaternion> HemiConvex::trace(const quaternion& origin, const quaternion& direction) const {
@@ -206,6 +274,10 @@ Icosahedron::Icosahedron() : HemiConvex({}) {
         {0, 0, PHI, IPHI}, {0, 0, PHI, -IPHI},
         {0, IPHI, 0, PHI}, {0, -IPHI, 0, PHI},
     };
+}
+
+bool Ball::inside(const quaternion& location) const {
+    return location.x*location.x + location.y*location.y + location.z*location.z < 1;
 }
 
 std::pair<real, quaternion> Ball::trace(const quaternion& origin, const quaternion& direction) const {

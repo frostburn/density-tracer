@@ -54,13 +54,11 @@ public:
 
 class Traceable {
 public:
-    quaternion location = Q_ZERO;
-    quaternion left_transform = Q_ONE;
-    quaternion right_transform = Q_ONE;
     const Pigment *pigment;
     const Pigment *reflectivity;
     const Pigment *transparency;
     const Pigment *ior;
+    virtual bool inside(const quaternion& location) const = 0;
     virtual std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const = 0;
 };
 

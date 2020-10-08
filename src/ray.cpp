@@ -51,9 +51,7 @@ RayPath::RayPath(
         std::shared_ptr<Traceable> closest_object;
         std::vector<std::shared_ptr<Traceable>>::const_iterator obj;
         for (obj = objects.begin(); obj != objects.end(); ++obj) {
-            const quaternion local_origin = (*obj)->left_transform*(origin - (*obj)->location)*(*obj)->right_transform;
-            const quaternion local_direction = (*obj)->left_transform*direction*(*obj)->right_transform;
-            auto [distance, normal] = (*obj)->trace(local_origin, local_direction);
+            auto [distance, normal] = (*obj)->trace(origin, direction);
             if (distance < this->length) {
                 this->length = distance;
                 closest_normal = normal;
@@ -61,7 +59,6 @@ RayPath::RayPath(
             }
         }
         if (this->length < max_length) {
-            closest_normal = inverse(closest_object->left_transform)*closest_normal*inverse(closest_object->right_transform);
             quaternion end = origin + direction * this->length;
             this->end_amplitude = closest_object->pigment->eval(end, direction, closest_normal, frequency);
             this->reflection_weight = closest_object->reflectivity->eval(end, direction, closest_normal, frequency);
