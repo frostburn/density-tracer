@@ -48,6 +48,45 @@ std::pair<real, quaternion> Scale::trace(const quaternion& origin, const quatern
     return std::make_pair(norm(origin - intersection), normalize({0, normal.x*this->amount.x, normal.y*this->amount.y, normal.z*this->amount.z}));
 }
 
+bool Merge::inside(const quaternion& location) const {
+    return this->first->inside(location) || this->second->inside(location);
+}
+
+std::pair<real, quaternion> Merge::trace(const quaternion& origin, const quaternion& direction) const {
+    quaternion o = origin;
+    real distance1 = 0;
+    quaternion normal1;
+    while (distance1 < std::numeric_limits<real>::infinity()) {
+        auto res = this->first->trace(o, direction);
+        distance1 += res.first;
+        quaternion intersection = o + res.first*direction;
+        if (this->second->inside(intersection)) {
+             o = intersection + EPSILON*direction;
+        } else {
+            normal1 = res.second;
+            break;
+        }
+    }
+    o = origin;
+    real distance2 = 0;
+    quaternion normal2;
+    while (distance2 < std::numeric_limits<real>::infinity()) {
+        auto res = this->second->trace(o, direction);
+        distance2 += res.first;
+        quaternion intersection = o + res.first*direction;
+        if (this->first->inside(intersection)) {
+             o = intersection + EPSILON*direction;
+        } else {
+            normal2 = res.second;
+            break;
+        }
+    }
+    if (distance1 < distance2) {
+        return std::make_pair(distance1, normal1);
+    }
+    return std::make_pair(distance2, normal2);
+}
+
 bool Plane::inside(const quaternion& location) const {
     return location.y < 0;
 }

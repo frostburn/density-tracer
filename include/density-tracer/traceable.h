@@ -36,6 +36,20 @@ public:
     std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const;
 };
 
+class CSG : public Traceable {
+public:
+    std::shared_ptr<Traceable> first;
+    std::shared_ptr<Traceable> second;
+    CSG(std::shared_ptr<Traceable> a, std::shared_ptr<Traceable> b) : first(a), second(b) {}
+};
+
+class Merge : public CSG {
+public:
+    Merge(std::shared_ptr<Traceable> a, std::shared_ptr<Traceable> b) : CSG(a, b) {}
+    bool inside(const quaternion& location) const;
+    std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const;
+};
+
 class Plane : public Traceable {
 public:
     bool inside(const quaternion& location) const;
