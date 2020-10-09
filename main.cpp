@@ -16,6 +16,7 @@ enum ColorMode { RGB, RYGCBV, WIDE, FULL_LINEAR, FULL_RANDOM };
 class Cloud : public Density {
 public:
     std::pair<real, real> eval(const quaternion& location, const quaternion& direction, const real& frequency) const {
+        return std::make_pair(0, 0);
         real x = location.x + 0.5;
         x = (x - floor(x + 0.5));
         real y = (location.y - 0.5);
@@ -35,14 +36,14 @@ public:
 class Sky : public SkySphere {
 public:
     real eval(const quaternion& direction, const real& frequency) const {
-        return max(0.0, min(1.0, sin(3*direction.x + frequency)*cos(4*direction.y + frequency*frequency)*cos(5*direction.z)));
+        return max(0.0, min(1.0, 2*sin(7*direction.x + frequency)*cos(6*direction.y + frequency*frequency)*cos(5*direction.z)));
     }
 };
 
 class Checkers : public Pigment {
 public:
     real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& frequency) const {
-        real c = floor(3*location.x + 0.1) + floor(3*location.y + 0.1) + floor(3*location.z + 0.1);
+        real c = floor(2*location.x + 0.1) + floor(2*location.y + 0.1) + floor(2*location.z + 0.1);
         return c - 2*floor(c*0.5);
     }
 };
@@ -54,21 +55,21 @@ public:
         quaternion light = normalize(light_location - location);
         quaternion reflection = 2 * dot(light, normal) * normal - light;
         real intensity = dot(light, normal) + pow(fabs(dot(reflection, direction)), 2);
-        return intensity * 0.8;
+        return intensity * 0.5;
     }
 };
 
 class Mirror : public Pigment {
 public:
     real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& frequency) const {
-        return 0.0;
+        return 0.05;
     }
 };
 
 class GlassTransparency : public Pigment {
 public:
     real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& frequency) const {
-        return 1.0;
+        return 0.9;
     }
 };
 
@@ -76,7 +77,7 @@ class GlassIOR : public Pigment {
 public:
     real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& frequency) const {
         const real mu = (frequency - FREQ_RED) / (FREQ_VIOLET - FREQ_RED);
-        return 1.05 + mu * 0.04;
+        return 1.03 + mu * 0.02;
     }
 };
 
@@ -88,10 +89,10 @@ int main(int argc, char *argv[])
     const int color_samples = 1<<8;
     const ColorMode color_mode = WIDE;
     const real clip_start = 0.05;
-    const real clip_end = 20.0;
+    const real clip_end = 100.0;
     const int image_width = 108 * scale;
     const int image_height = 108 * scale;
-    const int max_reflections = 128;
+    const int max_reflections = 16;
 
     const quaternion origin = {0, 0, 0, -3};
     const real air_ior = 1.0;
@@ -108,18 +109,13 @@ int main(int argc, char *argv[])
 
     vector<shared_ptr<Traceable>> objects;
 
-    shared_ptr<Ball> ball = make_shared<Ball>();
-    ball->location = {0, 1.25, 0, 4};
-    ball->pigment = &phong;
-    ball->reflectivity = &mirror;
-    ball->transparency = &transparency;
-    ball->ior = &ior;
-    objects.push_back(ball);
-
-    shared_ptr<Tetrahedron> tetra = make_shared<Tetrahedron>();
-    tetra->location = {0, -1.25, 0, 4};
-    tetra->right_transform = rotor({0, 1, 2, 3}, 0.3);
-    tetra->left_transform = inverse(tetra->right_transform);
+    shared_ptr<Tetrahedron> tetra_a = make_shared<Tetrahedron>();
+    shared_ptr<Tetrahedron> tetra_b = make_shared<Tetrahedron>();
+    shared_ptr<Rotate> tetra_c = make_shared<Rotate>(tetra_b, Q_I, 0.5*M_PI);
+    shared_ptr<Merge> tetra_d = make_shared<Merge>(tetra_a, tetra_c);
+    shared_ptr<Rotate> tetra_e = make_shared<Rotate>(tetra_d, Q_J, 0.25*M_PI);
+    shared_ptr<Rotate> tetra_f = make_shared<Rotate>(tetra_e, Q_I, 0.25*M_PI);
+    shared_ptr<Translate> tetra = make_shared<Translate>(tetra_f, (quaternion){0, 0, -0.75, 5});
     tetra->pigment = &phong;
     tetra->reflectivity = &mirror;
     tetra->transparency = &transparency;
@@ -127,12 +123,12 @@ int main(int argc, char *argv[])
     objects.push_back(tetra);
 
     shared_ptr<Plane> plane = make_shared<Plane>();
-    plane->location = {0, 0, 1, 0};
-    plane->pigment = &checkers;
-    plane->reflectivity = &black;
-    plane->transparency = &black;
-    plane->ior = &white;
-    objects.push_back(plane);
+    shared_ptr<Translate> plane_t = make_shared<Translate>(plane, (quaternion){0, 0, 1, 0});
+    plane_t->pigment = &checkers;
+    plane_t->reflectivity = &black;
+    plane_t->transparency = &black;
+    plane_t->ior = &white;
+    objects.push_back(plane_t);
 
     real dc;
     int num_color_samples;
@@ -170,7 +166,7 @@ int main(int argc, char *argv[])
             real view_x = (2*i - width) / (real) height * 1.0;
             real view_y = (2*j - height) / (real) height * 1.0;
 
-            const quaternion ray_direction = normalize((quaternion){0, view_x, view_y, 0} - origin);
+            const quaternion ray_direction = normalize((quaternion){0, view_x + 0.001, view_y - 0.000321, 0} - origin);
 
             pixels[idx] = C_BLACK;
             for (int k = 0; k < num_color_samples; ++k) {
@@ -195,8 +191,8 @@ int main(int argc, char *argv[])
                     case FULL_LINEAR: frequency = FREQ_NEAR_INFRARED + (FREQ_NEAR_ULTRAVIOLET - FREQ_NEAR_INFRARED) * (k + 0.5) / (real) num_color_samples; break;
                     default: frequency = distribution(generator); break;
                 }
-                const RayPath path(origin + clip_start*ray_direction, ray_direction, objects, sky_sphere, clip_end - clip_start, max_reflections, frequency, air_ior);
-                const real amplitude = path.eval(density, num_samples);
+                const RayPath path(origin + clip_start*ray_direction, ray_direction, objects, clip_end - clip_start, max_reflections, frequency, air_ior);
+                const real amplitude = path.eval(density, sky_sphere, num_samples);
                 pixels[idx] = pixels[idx] + frequency_to_rgb(frequency) * amplitude * dc;
             }
         }

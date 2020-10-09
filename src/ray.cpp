@@ -37,12 +37,11 @@ color frequency_to_rgb(const real& frequency) {
 RayPath::RayPath(
     const quaternion& origin, const quaternion& direction,
     const std::vector<std::shared_ptr<Traceable>>& objects,
-    const SkySphere& sky_sphere,
     const real& max_length, const int& max_depth,
     const real& frequency, const real& index) {
     this->start = origin;
     this->direction = direction;
-    this->total_length = max_length;
+    this->path_length = max_length;
     this->frequency = frequency;
     this->index = index;
     this->length = std::numeric_limits<real>::infinity();
@@ -60,7 +59,8 @@ RayPath::RayPath(
         }
         if (this->length < max_length) {
             quaternion end = origin + direction * this->length;
-            this->end_amplitude = closest_object->pigment->eval(end, direction, closest_normal, frequency);
+            this->end_object = closest_object;
+            this->end_normal = closest_normal;
             this->reflection_weight = closest_object->reflectivity->eval(end, direction, closest_normal, frequency);
             this->refraction_weight = closest_object->transparency->eval(end, direction, closest_normal, frequency);
             if (this->reflection_weight == 0) {
@@ -70,7 +70,7 @@ RayPath::RayPath(
                 this->reflected_path = new RayPath(
                     end + reflected_direction * EPSILON,
                     reflected_direction,
-                    objects, sky_sphere,
+                    objects,
                     max_length - this->length, max_depth - 1,
                     frequency, index);
             }
@@ -92,7 +92,7 @@ RayPath::RayPath(
                     this->refracted_path = new RayPath(
                         end + refracted_direction * EPSILON,
                         refracted_direction,
-                        objects, sky_sphere,
+                        objects,
                         max_length - this->length, max_depth - 1,
                         frequency, refractive_index / index);
                 } else {
@@ -101,7 +101,7 @@ RayPath::RayPath(
             }
         } else {
             this->length = max_length;
-            this->end_amplitude = sky_sphere.eval(direction, frequency);
+            this->end_object = nullptr;
             this->reflection_weight = 0;
             this->refraction_weight = 0;
             this->reflected_path = nullptr;
@@ -109,7 +109,7 @@ RayPath::RayPath(
         }
     } else {
         this->length = EPSILON;
-        this->end_amplitude = 0;
+        this->end_object = nullptr;
         this->reflection_weight = 0;
         this->refraction_weight = 0;
         this->reflected_path = nullptr;
@@ -117,19 +117,25 @@ RayPath::RayPath(
     }
 }
 
-real RayPath::eval(const Density& density, const int& num_samples) const {
+real RayPath::eval(const Density& density, const SkySphere& sky_sphere, const int& num_samples) const {
     std::default_random_engine generator;
     std::uniform_real_distribution<real> distribution(0.0, 1.0);
 
-    const int trunk_samples = (int) (num_samples * this->length / this->total_length);
-    real result = this->end_amplitude;
+    const int trunk_samples = (int) (num_samples * this->length / this->path_length);
+    const quaternion end = this->start + this->direction * this->length;
+    real result;
+    if (this->end_object == nullptr) {
+        result = sky_sphere.eval(this->direction, this->frequency);
+    } else {
+        result = this->end_object->pigment->eval(end, this->direction, this->end_normal, this->frequency);
+    }
     if (this->refracted_path != nullptr) {
         result *= (1 - this->refraction_weight);
-        result += this->refracted_path->eval(density, num_samples - trunk_samples) * this->refraction_weight;
+        result += this->refracted_path->eval(density, sky_sphere, num_samples - trunk_samples) * this->refraction_weight;
     }
     if (this->reflected_path != nullptr) {
         result *= (1 - this->reflection_weight);
-        result += this->reflected_path->eval(density, num_samples - trunk_samples) * this->reflection_weight;
+        result += this->reflected_path->eval(density, sky_sphere, num_samples - trunk_samples) * this->reflection_weight;
     }
     real dt = 1.0 / (real)(trunk_samples);
     real du = this->length * dt;

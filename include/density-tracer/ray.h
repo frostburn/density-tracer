@@ -68,15 +68,23 @@ class RayPath {
     quaternion start;
     quaternion direction;
     real length;
-    real total_length;
-    real end_amplitude;
+    real path_length;
+    std::shared_ptr<Traceable> end_object;
+    quaternion end_normal;
     real reflection_weight;
     real refraction_weight;
     RayPath *reflected_path;
     RayPath *refracted_path;
 public:
-    RayPath(const quaternion& origin, const quaternion& direction_, const std::vector<std::shared_ptr<Traceable>>& objects, const SkySphere& sky_sphere, const real& max_length, const int& max_depth, const real& frequency_, const real& index_);
+    RayPath(
+        const quaternion& origin,
+        const quaternion& direction_,
+        const std::vector<std::shared_ptr<Traceable>>& objects,
+        const real& max_length,
+        const int& max_depth,
+        const real& frequency_,
+        const real& index_);
 
-    real eval(const Density& density, const int& num_samples) const;
+    real eval(const Density& density, const SkySphere& sky_sphere, const int& num_samples) const;
 };
 #endif
