@@ -18,6 +18,8 @@ real orthoplex(quaternion q, const quaternion& c, const int& exponent, const int
 
 real pentatope(quaternion q, const quaternion& c, const int& num_iter);
 
+real min_axis_mandelbrot(quaternion q, const quaternion c, const std::vector<quaternion>& ax, const int& exponent, const int& num_iter);
+
 real multi_c_julia(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter);
 
 typedef std::function<real(const real&, const real&)> Reducer;

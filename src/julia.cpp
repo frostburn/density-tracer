@@ -186,6 +186,31 @@ real pentatope(quaternion q, const quaternion& c, const int& num_iter) {
     return log(log(r2)) * 1.4426950408889634 - 2.0 + num_iter - i;
 }
 
+real min_axis_mandelbrot(quaternion q, const quaternion c, const std::vector<quaternion>& ax, const int& exponent, const int& num_iter) {
+    int i = 0;
+    real r2 = 0;
+    for (; i < num_iter; ++i) {
+        r2 = norm2(q);
+        if (r2 > BAILOUT) {
+            break;
+        }
+        real min_r2 = std::numeric_limits<real>::infinity();
+        const quaternion q0 = q;
+        for (std::vector<quaternion>::const_iterator a = ax.begin(); a != ax.end(); ++a) {
+            const quaternion qn = pow(q0/(*a), exponent)*(*a) + c;
+            const real r2_n = norm2(qn);
+            if (r2_n < min_r2) {
+                min_r2 = r2_n;
+                q = qn;
+            }
+        }
+    }
+    if (r2 < M_E*M_E) {
+        return -sqrt(r2);
+    }
+    return log(log(r2)*0.5) / log(exponent) + (num_iter - 1 - i);
+}
+
 real multi_c_julia(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter) {
     int i = 0;
     real r2 = 0;
