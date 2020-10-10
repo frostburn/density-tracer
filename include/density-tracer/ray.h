@@ -100,6 +100,8 @@ public:
         const int& max_depth,
         const real& frequency_);
 
+    ~RayPath();
+
     real eval(const Density& density, const SkySphere& sky_sphere, const int& num_samples) const;
 };
 #endif

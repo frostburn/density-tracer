@@ -148,6 +148,11 @@ RayPath::RayPath(
     }
 }
 
+RayPath::~RayPath() {
+    delete this->reflected_path;
+    delete this->refracted_path;
+}
+
 real RayPath::eval(const Density& density, const SkySphere& sky_sphere, const int& num_samples) const {
     std::default_random_engine generator;
     std::uniform_real_distribution<real> distribution(0.0, 1.0);
