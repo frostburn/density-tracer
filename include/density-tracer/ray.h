@@ -42,6 +42,22 @@ public:
     }
 };
 
+class Reflectivity {
+public:
+    virtual real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& ior, const real& frequency) const = 0;
+};
+
+class Dull : public Reflectivity {
+    real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& ior, const real& frequency) const {
+        return 0;
+    }
+};
+
+class Fresnel : public Reflectivity {
+public:
+    real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& ior, const real& frequency) const;
+};
+
 class Density {
 public:
     virtual std::pair<real, real> eval(const quaternion& location, const quaternion& direction, const real& frequency) const = 0;
@@ -54,17 +70,17 @@ public:
 
 class Traceable {
 public:
-    const Pigment *pigment;
-    const Pigment *reflectivity;
-    const Pigment *transparency;
-    const Pigment *ior;
+    const Pigment *finish;  // Additive surface highlights
+    const Pigment *ior;  // Index of refraction
+    const Reflectivity *reflectivity;  // Reflectivity of the surface. Can depend on IOR, usually a Fresnel instance.
+    const Pigment *transparency;  // Relative transparency applied after reflections
+    const Pigment *pigment;  // Base ambient pigment
     virtual bool inside(const quaternion& location) const = 0;
     virtual std::pair<real, quaternion> trace(const quaternion& origin, const quaternion& direction) const = 0;
 };
 
 class RayPath {
     real frequency;
-    real index;
     quaternion start;
     quaternion direction;
     real length;
@@ -82,8 +98,7 @@ public:
         const std::vector<std::shared_ptr<Traceable>>& objects,
         const real& max_length,
         const int& max_depth,
-        const real& frequency_,
-        const real& index_);
+        const real& frequency_);
 
     real eval(const Density& density, const SkySphere& sky_sphere, const int& num_samples) const;
 };
