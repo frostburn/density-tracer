@@ -125,10 +125,10 @@ void multibranch_pentatope_accumulate(unsigned long long *inside_counter, real *
         return;
     }
     multibranch_pentatope_accumulate(inside_counter, outside_accumulator, {w2 - im2 + c.w, 2*q.w*q.x + c.x, 2*q.w*q.y + c.y, 2*q.w*q.z + c.z}, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
-    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, square(q*IP1)*P1 + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
-    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, square(q*IP2)*P2 + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
-    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, square(q*IP3)*P3 + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
-    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, square(q*IP4)*P4 + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, q*IP1*q + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, q*IP2*q + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, q*IP3*q + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
+    multibranch_pentatope_accumulate(inside_counter, outside_accumulator, q*IP4*q + c, c, num_iter - 1, inside_cutoff, clip_outside, bailout, r2_mapper, reducer);
 }
 
 std::pair<unsigned long long, real> multibranch_pentatope(quaternion q, const quaternion& c, const int& num_iter, const unsigned long long& inside_cutoff, const bool& clip_outside, const real& bailout, R2Mapper r2_mapper, Reducer reducer, const real& empty) {
@@ -148,10 +148,10 @@ real pentatope(quaternion q, const quaternion& c, const int& num_iter) {
             break;
         }
         const quaternion q0 = square(q) + c;
-        const quaternion q1 = square(q*IP1)*P1 + c;
-        const quaternion q2 = square(q*IP2)*P2 + c;
-        const quaternion q3 = square(q*IP3)*P3 + c;
-        const quaternion q4 = square(q*IP4)*P4 + c;
+        const quaternion q1 = q*IP1*q + c;
+        const quaternion q2 = q*IP2*q + c;
+        const quaternion q3 = q*IP3*q + c;
+        const quaternion q4 = q*IP4*q + c;
 
         q = q0;
         r2 = norm2(q);
@@ -184,6 +184,31 @@ real pentatope(quaternion q, const quaternion& c, const int& num_iter) {
         return -sqrt(r2);
     }
     return log(log(r2)) * 1.4426950408889634 - 2.0 + num_iter - i;
+}
+
+real multi_c_julia(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter) {
+    int i = 0;
+    real r2 = 0;
+    for (; i < num_iter; ++i) {
+        r2 = norm2(q);
+        if (r2 > BAILOUT) {
+            break;
+        }
+        const quaternion qn = pow(q, exponent);
+        real min_r2 = std::numeric_limits<real>::infinity();
+        for (std::vector<quaternion>::const_iterator c = cs.begin(); c != cs.end(); ++c) {
+            const quaternion qnc = qn + (*c);
+            const real r2_n = norm2(qnc);
+            if (r2_n < min_r2) {
+                min_r2 = r2_n;
+                q = qnc;
+            }
+        }
+    }
+    if (r2 < M_E*M_E) {
+        return -sqrt(r2);
+    }
+    return log(log(r2)*0.5) / log(exponent) + (num_iter - 1 - i);
 }
 
 real min_r(const real& a, const real& b) {

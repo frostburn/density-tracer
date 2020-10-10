@@ -4,6 +4,7 @@
 #include <cmath>
 #include <utility>
 #include <functional>
+#include <vector>
 
 #include "density-tracer/quaternion.h"
 
@@ -16,6 +17,8 @@ real abc_julia(quaternion q, const quaternion& a, const quaternion& b, const qua
 real orthoplex(quaternion q, const quaternion& c, const int& exponent, const int& num_iter);
 
 real pentatope(quaternion q, const quaternion& c, const int& num_iter);
+
+real multi_c_julia(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter);
 
 typedef std::function<real(const real&, const real&)> Reducer;
 typedef std::function<real(const real&, const int&, const real&)> R2Mapper;
