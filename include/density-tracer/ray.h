@@ -53,6 +53,12 @@ class Dull : public Reflectivity {
     }
 };
 
+class PerfectMirror : public Reflectivity {
+    real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& ior, const real& frequency) const {
+        return 1;
+    }
+};
+
 class Fresnel : public Reflectivity {
 public:
     real eval(const quaternion& location, const quaternion& direction, const quaternion& normal, const real& ior, const real& frequency) const;
@@ -103,5 +109,9 @@ public:
     ~RayPath();
 
     real eval(const Density& density, const SkySphere& sky_sphere, const int& num_samples) const;
+    quaternion end() const;
+    quaternion get_direction() const;
+    const RayPath* get_reflected_path() const;
+    const RayPath* get_refracted_path() const;
 };
 #endif

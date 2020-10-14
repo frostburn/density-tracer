@@ -89,7 +89,7 @@ RayPath::RayPath(
             const real ior = closest_object->ior->eval(end, direction, closest_normal, frequency);
             this->reflection_weight = closest_object->reflectivity->eval(end, direction, closest_normal, ior, frequency);
             this->refraction_weight = closest_object->transparency->eval(end, direction, closest_normal, frequency);
-            if (this->reflection_weight == 0) {
+            if (this->reflection_weight == 0 || max_depth == 1) {
                 this->reflected_path = nullptr;
             } else {
                 const quaternion reflected_direction = direction - 2 * dot(direction, closest_normal) * closest_normal;
@@ -100,7 +100,7 @@ RayPath::RayPath(
                     max_length - this->length, max_depth - 1,
                     frequency);
             }
-            if (this->refraction_weight == 0 || this->reflection_weight == 1) {
+            if (this->refraction_weight == 0 || this->reflection_weight == 1 || max_depth == 1) {
                 this->refracted_path = nullptr;
             } else {
                 // Adapted from:
@@ -185,4 +185,20 @@ real RayPath::eval(const Density& density, const SkySphere& sky_sphere, const in
         result *= exp(-absorption*du);
     }
     return result;
+}
+
+quaternion RayPath::end() const {
+    return this->start + this->direction * this->length;
+}
+
+quaternion RayPath::get_direction() const {
+    return this->direction;
+}
+
+const RayPath* RayPath::get_reflected_path() const {
+    return this->reflected_path;
+}
+
+const RayPath* RayPath::get_refracted_path() const {
+    return this->refracted_path;
 }
