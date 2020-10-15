@@ -16,10 +16,10 @@ real potential(const real& r2, const int& remaining_iterations, const real& inve
 int main(int argc, char *argv[])
 {
     const int scale = 10;
-    const int anti_alias = 3;
+    const int anti_alias = 2;
     const int depth = 1 << 12;
-    const real clip_start = -2.0;
-    const real clip_end = 2.0;
+    const real clip_start = -3.0;
+    const real clip_end = 3.0;
     const int image_width = 108 * scale;
     const int image_height = 108 * scale;
 
@@ -33,13 +33,33 @@ int main(int argc, char *argv[])
     uniform_real_distribution<real> distribution(0, 1);
     const real du = (clip_end - clip_start) / (real) depth;
 
-    // MultiBranchMandelbrot brot(5, 2, 11, 0, false, 1<<12, potential, min_r, numeric_limits<real>::infinity());
-    vector<quaternion> cs = {
-        {0.2, 0.9, 0.3, 0},
-        {0.3, 0.4, -0.9, 0},
-        {-0.5, 0.7, 0.8, 0},
-        {0.2, -0.8, 0.5, 0},
-    };
+    NonEscapingMultiBranch brot(-5, 2, 5, max_q);
+
+    // const real PHI = 1.618033988749895;
+    // vector<quaternion> ax = {
+    //     {0, 1, PHI, 0}, {0, 1, -PHI, 0},
+    //     {1, PHI, 0, 0}, {1, -PHI, 0, 0},
+    //     {PHI, 0, 1, 0}, {-PHI, 0, 1, 0}
+    // };
+    // vector<quaternion> ax = {
+    //     Q_ONE,
+    //     {-pow(5, -0.5), 1, 1, 1},
+    //     {-pow(5, -0.5), 1, -1, -1},
+    //     {-pow(5, -0.5), -1, 1, -1},
+    //     {-pow(5, -0.5), -1, -1, 1}
+    // };
+
+    // vector<quaternion> ax = {
+    //     {1, 1, 1, 0},
+    //     {1, -1, -1, 0},
+    //     {-1, 1, -1, 0},
+    //     {-1, -1, 1, 0 }
+    // };
+
+
+    // for (auto i = ax.begin(); i != ax.end(); ++i) {
+    //     *i = normalize(*i);
+    // }
 
     #pragma omp parallel for
     for (int j = 0; j < height; ++j) {
@@ -56,19 +76,22 @@ int main(int argc, char *argv[])
             color pixel = C_WHITE*0.015;
             for (int k = 0; k < depth; ++k) {
                 real t = (depth - k - distribution(generator)) * du + clip_start;
-                quaternion q = {1.3*view_x, 1.3*view_y+0.001, t, 0};
+                quaternion q = {1.7*view_x, 1.7*view_y+0.001, t, 0};
 
-                quaternion rot = rotor({0, 4, -5, 6}, 1.15);
+                // quaternion rot = rotor({0, 4, -5, 6}, 1.15);
+                quaternion rot = normalize({1, 0.4, 0.25, 0});
                 q = rot*q*rot;
 
-                real r = multi_c_julia(q, cs, 3, 16);
+                const quaternion c = {0.4, 0.2, -0.3, -0.213};
+                const quaternion res = brot.eval(q, c);
+                const real r = norm2(res-c)-8;
 
                 color illumination, absorption;
                 if (r < 0) {
                     illumination = C_BLACK;
-                    absorption = {0, 15, 15, 15};
+                    absorption = {0, 10-r, 10-r, 10-r};
                 } else {
-                    illumination = {0, 12*exp(-0.03*r*r), 22*exp(-0.07*r*r), 10*exp(-0.03*r*r)};
+                    illumination = {0, 0.0005*r, 0.001*r, 0.0001*r};
                     absorption = {0, 0.1, 0.1, 0.1};
                 }
 

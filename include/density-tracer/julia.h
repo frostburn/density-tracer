@@ -42,7 +42,6 @@ class MultiBranchMandelbrot {
 
     // Temporary variables
     real exponent;
-    quaternion c;
     real inverse_log_exponent;
     real *roots_of_unity;
 
@@ -54,5 +53,28 @@ public:
 };
 
 std::pair<unsigned long long, real> multibranch_pentatope(quaternion q, const quaternion& c, const int& num_iter, const unsigned long long& inside_cutoff, const bool& clip_outside, const real& bailout, R2Mapper r2_mapper, Reducer reducer, const real& empty);
+
+typedef std::function<quaternion(const std::vector<quaternion>& args)> MultiBranchReducer;
+
+quaternion min_q(const std::vector<quaternion>& args);
+
+quaternion max_q(const std::vector<quaternion>& args);
+
+class NonEscapingMultiBranch {
+    // Parameters
+    int denominator;
+    int num_iter;
+    MultiBranchReducer reducer;
+
+    // Temporary variables
+    real exponent;
+    real *roots_of_unity;
+
+public:
+    NonEscapingMultiBranch(const int& numerator, const int& denominator, const int& num_iter, MultiBranchReducer reducer);
+    ~NonEscapingMultiBranch();
+    quaternion accumulate(quaternion q, const quaternion& c, const int& num_iter) const;
+    quaternion eval(const quaternion& q, const quaternion& c) const;
+};
 
 #endif

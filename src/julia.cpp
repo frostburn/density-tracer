@@ -329,3 +329,92 @@ std::pair<unsigned long long int, real> MultiBranchMandelbrot::eval(const quater
 
     return std::make_pair(inside_counter, outside_accumulator);
 }
+
+quaternion min_q(const std::vector<quaternion>& args) {
+    quaternion result = infinity();
+    real min_r2 = std::numeric_limits<real>::infinity();
+    for (std::vector<quaternion>::const_iterator q = args.begin(); q != args.end(); ++q) {
+        real r2 = norm2(*q);
+        if (r2 < min_r2) {
+            result = *q;
+            min_r2 = r2;
+        }
+    }
+    return result;
+}
+
+quaternion max_q(const std::vector<quaternion>& args) {
+    quaternion result = Q_ZERO;
+    real max_r2 = 0;
+    for (std::vector<quaternion>::const_iterator q = args.begin(); q != args.end(); ++q) {
+        real r2 = norm2(*q);
+        if (r2 > max_r2) {
+            result = *q;
+            max_r2 = r2;
+        }
+    }
+    return result;
+}
+
+NonEscapingMultiBranch::NonEscapingMultiBranch(const int& numerator, const int& denominator, const int& num_iter, MultiBranchReducer reducer) {
+    this->roots_of_unity = new real[2*denominator];
+    for (int i = 0; i < denominator; ++i) {
+        this->roots_of_unity[2*i+0] = cos(i*2*M_PI/(real)denominator);
+        this->roots_of_unity[2*i+1] = sin(i*2*M_PI/(real)denominator);
+    }
+    this->denominator = denominator;
+    this->exponent = numerator / (real)denominator;
+
+    this->num_iter = num_iter;
+    this->reducer = reducer;
+}
+
+NonEscapingMultiBranch::~NonEscapingMultiBranch() {
+    delete[] this->roots_of_unity;
+}
+
+quaternion NonEscapingMultiBranch::accumulate(quaternion q, const quaternion& c, const int& num_iter) const {
+    if (num_iter == 0) {
+        return q;
+    }
+    const real im2 = q.x*q.x + q.y*q.y + q.z*q.z;
+    const real r2 = q.w*q.w + im2;
+    const real rim = sqrt(im2);
+    std::vector<quaternion> args(this->denominator + 1);
+    args.push_back(q);
+    if (fabs(rim) < EPSILON) {
+        const real theta = atan2(q.x, q.w) * this->exponent;
+        const real r = pow(r2, this->exponent*0.5);
+        const real w = cos(theta) * r;
+        const real im = sin(theta) * r;
+        for (int i = 0; i < this->denominator; ++i) {
+            real w_ = w * this->roots_of_unity[2*i] + im * this->roots_of_unity[2*i + 1];
+            real im_ = im * this->roots_of_unity[2*i] - w *this->roots_of_unity[2*i + 1];
+            args.push_back(this->accumulate(
+                (quaternion){w_ + c.w, im_ + c.x, c.y, c.z},
+                c, num_iter - 1
+            ));
+        }
+    } else {
+        const real theta = atan2(rim, q.w) * this->exponent;
+        const real rimn = 1.0 / rim;
+        const real r = pow(r2, this->exponent*0.5);
+        const real w = cos(theta) * r;
+        const real im = sin(theta) * r;
+        const real wn = w * rimn;
+        const real imn = im * rimn;
+        for (int i = 0; i < this->denominator; ++i) {
+            real w_ = w * this->roots_of_unity[2*i] + im * this->roots_of_unity[2*i + 1];
+            real imn_ = imn * this->roots_of_unity[2*i] - wn * this->roots_of_unity[2*i + 1];
+            args.push_back(this->accumulate(
+                (quaternion){w_ + c.w, q.x*imn_ + c.x, q.y*imn_ + c.y, q.z*imn_ + c.z},
+                c, num_iter - 1
+            ));
+        }
+    }
+    return this->reducer(args);
+}
+
+quaternion NonEscapingMultiBranch::eval(const quaternion& q, const quaternion& c) const {
+    return this->accumulate(q, c, this->num_iter);
+}

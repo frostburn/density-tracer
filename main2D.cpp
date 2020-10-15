@@ -20,7 +20,7 @@ real rcos(const real& t) {
 int main(int argc, char *argv[])
 {
     const int scale = 10;
-    const int anti_alias = 9;
+    const int anti_alias = 5;
     const int image_width = 108 * scale;
     const int image_height = 108 * scale;
 
@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     pixels = new color [width*height];
     int progress = 0;
 
-    MultiBranchMandelbrot brot(14, 3, 6, 0, false, 1<<12, potential, min_r, numeric_limits<real>::infinity());
+    NonEscapingMultiBranch brot(-5, 2, 7, max_q);
 
     #pragma omp parallel for
     for (int j = 0; j < height; ++j) {
@@ -44,16 +44,13 @@ int main(int argc, char *argv[])
             real view_x = (2*i - width) / (real) height * 1.0;
             real view_y = (2*j - height) / (real) height * 1.0;
 
-            // quaternion q = {-0.05*view_y-0.5, 0.05*view_x, 0, 0};
-            quaternion q = {-0.65+0.5*view_y, 0.5*view_x+0.001, 0, 0};
+            const quaternion q = {-2*view_y, 2*view_x+0.001, 0, 0};
+            const quaternion c = {0.123, -0.2, 0.4, -0.3211};
+            const quaternion res = brot.eval(q, c);
 
-            auto [inside, outside] = brot.eval(q, {0.52, -0.4, 0, 0});
+            const real r = pow(norm2(res-c), 0.2)-2;
 
-            // const real residue = -min(0.0, outside);
-            // outside = max(0.0, outside);
-
-            // pixels[idx] = {0, rcos(outside) + rcos(residue*0.1 + 0.1*residue*residue), rcos(outside*2.2 + 0.2) + rcos(residue*0.45 - residue*residue*0.011)*(0.9 + 0.1*sin(residue)), rcos(outside*2.9) + rcos(residue*0.393 + residue*residue*0.011)*(0.3 + 0.7*sin(residue+2))};
-            pixels[idx] = {0, 15*outside, 24*outside, 9*outside};
+            pixels[idx] = {0, 0.6*r, 0.1*r, 0.01*r};
         }
     }
 
