@@ -185,6 +185,10 @@ quaternion cross(const quaternion& a, const quaternion& b) {
     };
 }
 
+quaternion componentwise(const quaternion& a, const quaternion& b) {
+    return (quaternion) {a.w * b.w, a.x * b.x, a.y * b.y, a.z * b.z};
+}
+
 quaternion rotor(quaternion axis, const real& angle) {
     axis = imag(axis);
     axis = axis / norm(axis);
@@ -200,6 +204,10 @@ quaternion exp(const quaternion& q) {
     quaternion im = imag(q);
     real r = norm(im);
     return exp(q.w) * (cos(r) + sin(r) * im);
+}
+
+quaternion floor(const quaternion& q) {
+    return (quaternion) {floor(q.w), floor(q.x), floor(q.y), floor(q.z)};
 }
 
 color clip_color(const color& a) {

@@ -3,6 +3,6 @@
 
 #include "density-tracer/quaternion.h"
 
-color* downscale(color *pixels, int result_height, int result_width, int factor);
+color* downscale(color *pixels, int result_width, int result_height, int factor);
 
 #endif

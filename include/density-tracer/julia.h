@@ -20,7 +20,12 @@ real pentatope(quaternion q, const quaternion& c, const int& num_iter);
 
 real min_axis_mandelbrot(quaternion q, const quaternion c, const std::vector<quaternion>& ax, const int& exponent, const int& num_iter);
 
+quaternion max_axis_nonescaping(quaternion q, const quaternion c, const std::vector<quaternion>& ax, const int& exponent, const int& num_iter);
+
 real multi_c_julia(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter);
+
+quaternion multi_c_nonescaping(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter);
+quaternion multi_c_nonescaping2(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter);
 
 typedef std::function<real(const real&, const real&)> Reducer;
 typedef std::function<real(const real&, const int&, const real&)> R2Mapper;

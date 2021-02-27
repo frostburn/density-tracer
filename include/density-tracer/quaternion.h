@@ -86,11 +86,15 @@ quaternion project(const quaternion& a, const quaternion& b);
 
 quaternion cross(const quaternion& a, const quaternion& b);
 
+quaternion componentwise(const quaternion& a, const quaternion& b);
+
 quaternion rotor(quaternion axis, const real& angle);
 
 quaternion rotate(const quaternion& q, const quaternion& axis, const real& angle);
 
 quaternion exp(const quaternion& q);
+
+quaternion floor(const quaternion& q);
 
 color clip_color(const color& c);
 

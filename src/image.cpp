@@ -1,6 +1,6 @@
 #include "density-tracer/image.h"
 
-color* downscale(color *pixels, int result_height, int result_width, int factor) {
+color* downscale(color *pixels, int result_width, int result_height, int factor) {
     color *result;
     result = new color [result_width*result_height];
 

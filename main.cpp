@@ -92,9 +92,9 @@ public:
 
 int main(int argc, char *argv[])
 {
-    const int scale = 10;
+    const int scale = 2;
     const int anti_alias = 2;
-    const int num_samples = 1;
+    const int num_samples = 2;
     const int color_samples = 1<<8;
     const ColorMode color_mode = WIDER;
     const real clip_start = 0.05;

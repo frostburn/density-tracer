@@ -17,9 +17,9 @@ int main(int argc, char *argv[])
 {
     const int scale = 10;
     const int anti_alias = 2;
-    const int depth = 1 << 12;
-    const real clip_start = -3.0;
-    const real clip_end = 3.0;
+    const int depth = 1 << 11;
+    const real clip_start = -2.5;
+    const real clip_end = 2.5;
     const int image_width = 108 * scale;
     const int image_height = 108 * scale;
 
@@ -33,14 +33,14 @@ int main(int argc, char *argv[])
     uniform_real_distribution<real> distribution(0, 1);
     const real du = (clip_end - clip_start) / (real) depth;
 
-    NonEscapingMultiBranch brot(-5, 2, 5, max_q);
+    // NonEscapingMultiBranch brot(-5, 2, 5, max_q);
 
-    // const real PHI = 1.618033988749895;
-    // vector<quaternion> ax = {
-    //     {0, 1, PHI, 0}, {0, 1, -PHI, 0},
-    //     {1, PHI, 0, 0}, {1, -PHI, 0, 0},
-    //     {PHI, 0, 1, 0}, {-PHI, 0, 1, 0}
-    // };
+    const real PHI = 1.618033988749895;
+    vector<quaternion> ax = {
+        {0, 1, PHI, 0}, {0, 1, -PHI, 0},
+        {1, PHI, 0, 0}, {1, -PHI, 0, 0},
+        {PHI, 0, 1, 0}, {-PHI, 0, 1, 0}
+    };
     // vector<quaternion> ax = {
     //     Q_ONE,
     //     {-pow(5, -0.5), 1, 1, 1},
@@ -76,23 +76,26 @@ int main(int argc, char *argv[])
             color pixel = C_WHITE*0.015;
             for (int k = 0; k < depth; ++k) {
                 real t = (depth - k - distribution(generator)) * du + clip_start;
-                quaternion q = {1.7*view_x, 1.7*view_y+0.001, t, 0};
+                quaternion q = {2*view_x, 2*view_y+0.001, t, 0};
 
                 // quaternion rot = rotor({0, 4, -5, 6}, 1.15);
-                quaternion rot = normalize({1, 0.4, 0.25, 0});
+                quaternion rot = normalize({1, 0.4, 2.25, 0});
                 q = rot*q*rot;
 
-                const quaternion c = {0.4, 0.2, -0.3, -0.213};
-                const quaternion res = brot.eval(q, c);
-                const real r = norm2(res-c)-8;
+                // const quaternion c = {0.4, 0.2, -0.3, -0.213};
+                // const quaternion res = brot.eval(q, c);
+
+                const quaternion res = max_axis_nonescaping(q, q, ax, -3, 42);
+
+                const real r = norm2(res)-2.9;
 
                 color illumination, absorption;
                 if (r < 0) {
-                    illumination = C_BLACK;
+                    illumination = {0, 0, 5*exp(5*r), 0};
                     absorption = {0, 10-r, 10-r, 10-r};
                 } else {
-                    illumination = {0, 0.0005*r, 0.001*r, 0.0001*r};
-                    absorption = {0, 0.1, 0.1, 0.1};
+                    illumination = {0, exp(-r*0.5), exp(-r), exp(-r*2) + exp(-(r-1)*(r-1))};
+                    absorption = {0, 0.1 + 5*exp(-(r-2)*(r-2)), 0.1, 0.1};
                 }
 
                 pixel = pixel + du * illumination;

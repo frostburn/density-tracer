@@ -211,6 +211,22 @@ real min_axis_mandelbrot(quaternion q, const quaternion c, const std::vector<qua
     return log(log(r2)*0.5) / log(exponent) + (num_iter - 1 - i);
 }
 
+quaternion max_axis_nonescaping(quaternion q, const quaternion c, const std::vector<quaternion>& ax, const int& exponent, const int& num_iter) {
+    for (int i = 0; i < num_iter; ++i) {
+        real max_r2 = 0;
+        const quaternion q0 = q;
+        for (std::vector<quaternion>::const_iterator a = ax.begin(); a != ax.end(); ++a) {
+            const quaternion qn = (*a)*pow(q0*(*a), exponent) + c;
+            const real r2_n = norm2(qn);
+            if (r2_n > max_r2) {
+                max_r2 = r2_n;
+                q = qn;
+            }
+        }
+    }
+    return q;
+}
+
 real multi_c_julia(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter) {
     int i = 0;
     real r2 = 0;
@@ -234,6 +250,34 @@ real multi_c_julia(quaternion q, const std::vector<quaternion>& cs, const int& e
         return -sqrt(r2);
     }
     return log(log(r2)*0.5) / log(exponent) + (num_iter - 1 - i);
+}
+
+quaternion multi_c_nonescaping(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter) {
+    for (int i = 0; i < num_iter; ++i) {
+        real max_r2 = 0;
+        const quaternion qn = pow(q, exponent);
+        for (std::vector<quaternion>::const_iterator c = cs.begin(); c != cs.end(); ++c) {
+            const quaternion qnc = qn + (*c);
+            const real r2_n = norm2(qnc);
+            if (r2_n > max_r2) {
+                max_r2 = r2_n;
+                q = qnc;
+            }
+        }
+    }
+    return q;
+}
+
+quaternion multi_c_nonescaping2(quaternion q, const std::vector<quaternion>& cs, const int& exponent, const int& num_iter) {
+    for (int i = 0; i < num_iter; ++i) {
+        const quaternion qn = pow(q, exponent);
+        q = Q_ZERO;
+        for (std::vector<quaternion>::const_iterator c = cs.begin(); c != cs.end(); ++c) {
+            q = q + inverse(qn + (*c));
+        }
+        q = inverse(q);
+    }
+    return q;
 }
 
 real min_r(const real& a, const real& b) {
@@ -280,7 +324,9 @@ void MultiBranchMandelbrot::accumulate(unsigned long long *inside_counter, real 
             const real v = this->r2_mapper(r2, num_iter, this->inverse_log_exponent);
             *outside_accumulator = this->reducer(*outside_accumulator, v);
         }
-        return;
+        if (r2 >= this->bailout) {
+            return;
+        }
     }
     if (num_iter == 0) {
         *inside_counter = *inside_counter + 1;
